@@ -76,6 +76,14 @@ Core --> Audit
 Interface --> Audit
 ```
 
+### Layering Rules (Implementation)
+
+- Dependency direction is enforced as `interface -> core`, with persistence behind core-defined ports.
+- Interface modules must not import persistence modules directly.
+- Core modules must not import persistence modules directly.
+- Persistence implements core ports and is wired in the composition root.
+- `app/main.py` is the composition root where core and persistence are connected.
+
 ### **Client Layer**
 
 External consumers such as loaders, SDKs, and administrative tooling interact with the repository through a controlled interface. This layer is responsible only for requesting assets or resolved bundles.

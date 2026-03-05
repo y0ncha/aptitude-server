@@ -6,6 +6,16 @@
 - Intelligence layer provides metadata and relationship signals.
 - Persistence layer stores artifacts, metadata indexes, and edges.
 - Audit layer records publish/deprecate/resolve/evaluate events.
+- Dependency direction is strict:
+  - `interface -> core`
+  - `core -> intelligence` (when present)
+  - `core` depends on persistence only through core-defined ports/interfaces
+  - `persistence` implements core ports and may import core abstractions
+- Forbidden imports:
+  - `app/interface/**` must not import `app/persistence/**`
+  - `app/core/**` must not import `app/persistence/**`
+- Composition root exception:
+  - `app/main.py` may wire core services to persistence adapters.
 
 ## Required Invariants
 - Immutable skill versions.

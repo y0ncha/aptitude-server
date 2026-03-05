@@ -26,3 +26,8 @@ If rules conflict, follow the highest item unless the repository includes a newe
 - Dependencies and relationships are explicit and typed.
 - Governance and policy enforcement are centralized in the repository.
 - Resolution decisions remain explainable through `ResolutionReport` and audit records.
+- Layering dependency direction is strict:
+  - `app/interface/**` may import only core-facing modules (not persistence).
+  - `app/core/**` must not import persistence modules directly.
+  - Persistence must be injected via core-defined ports/interfaces.
+  - `app/main.py` is the composition root allowed to wire core to persistence.
