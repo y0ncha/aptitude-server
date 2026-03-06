@@ -7,7 +7,7 @@ run:
 	@printf "\033[0;36m    API:\033[0m  http://127.0.0.1:8000\n"
 	@printf "\033[0;36m   Docs:\033[0m  http://127.0.0.1:8000/docs\n"
 	@printf "\033[0;36m   Stop:\033[0m  Ctrl+C\n\n"
-	@$(UV) run fastapi dev
+	@$(UV) run python main.py
 
 test:
 	$(UV) run --extra dev pytest

@@ -14,9 +14,10 @@ that infrastructure layers implement.
 - `dependencies.py`: FastAPI dependency accessors for settings/services.
 - `readiness.py`: readiness domain service and report models.
 - `settings.py`: typed environment configuration.
-- `logging.py`: process logging bootstrap.
+- `logging.py`: centralized logging config for application and `uvicorn.*` loggers.
 
 ## Boundaries
 
 - Core must not import persistence implementations directly.
 - Persistence and audit adapters implement core-defined protocols.
+- Logging configuration is defined once in core and reused by runtime entrypoints.

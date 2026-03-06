@@ -9,7 +9,7 @@ audit adapter, persistence adapters/models, and placeholders for future intellig
 
 ## Module Map
 
-- `app/main.py`: FastAPI application creation and startup/shutdown wiring.
+- `app/main.py`: FastAPI application creation, startup/shutdown wiring, and dev server runner with shared logging config + startup banner.
 - `app/audit/`: audit port adapters.
 - `app/core/`: domain services, settings, ports, and dependency providers.
 - `app/interface/`: API interface boundary.

@@ -75,5 +75,5 @@ uv venv
 source .venv/bin/activate
 uv pip install fastapi "uvicorn[standard]" sqlalchemy alembic pydantic-settings
 export DATABASE_URL="postgresql+psycopg://postgres:postgres@localhost:5432/aptitude"
-uvicorn app.main:app --reload
+python main.py
 ```
