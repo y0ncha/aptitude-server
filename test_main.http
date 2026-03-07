@@ -1,11 +1,11 @@
-# Test your FastAPI endpoints
+# Test health endpoints
 
-GET http://127.0.0.1:8000/
+GET http://127.0.0.1:8000/healthz
 Accept: application/json
 
 ###
 
-GET http://127.0.0.1:8000/hello/User
+GET http://127.0.0.1:8000/readyz
 Accept: application/json
 
 ###

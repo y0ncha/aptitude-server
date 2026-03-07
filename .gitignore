@@ -48,3 +48,6 @@ htmlcov/
 
 # UV
 .uv/
+.uv-cache
+
+.tmp_migration.db
