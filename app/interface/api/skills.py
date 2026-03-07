@@ -1,4 +1,4 @@
-"""Immutable skill registry API endpoints."""
+"""Immutable skill catalog API endpoints."""
 
 from __future__ import annotations
 

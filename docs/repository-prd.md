@@ -1,11 +1,11 @@
-# Aptitude Repository PRD
+# Aptitude Server PRD
 
 ## 1. Executive Summary
 
 - **Problem Statement**: Platform teams need a single authoritative service for skill artifact storage, dependency intelligence, and governed deterministic resolution that all runtime clients can consume.
-- **Proposed Solution**: Define `aptitude-repository` as the Artifactory-like backend for immutable skill artifacts, dependency/relationship intelligence, governed resolution, and upload/download APIs.
+- **Proposed Solution**: Define `aptitude-server` as the Artifactory-like backend for immutable skill artifacts, dependency/relationship intelligence, governed resolution, and upload/download APIs.
 - **Success Criteria**:
-  - 100% of skill artifact writes happen through repository APIs (no direct client DB writes).
+  - 100% of skill artifact writes happen through server APIs (no direct client DB writes).
   - Deterministic resolution reproducibility >= 99.99% for identical `(root_skill, version, repo_state_id)` inputs across 1,000 runs.
   - `GET /resolve` p95 <= 250 ms for bundles up to 200 nodes and graph depth <= 5.
   - Publish pipeline (`validate -> store -> index`) success rate >= 99.5% per month.
@@ -52,19 +52,19 @@
   - Determinism benchmark: same input must yield identical bundle hash under fixed `repo_state_id`.
   - Resolution correctness suite: dependency closure, cycle detection, conflict failure, overlap tie-break determinism.
   - Metadata quality checks: ranking correlation against curated benchmark set.
-  - Optional RAG evaluation: Precision@10 >= 0.85 on repository search benchmark before enabling in production.
+  - Optional RAG evaluation: Precision@10 >= 0.85 on server search benchmark before enabling in production.
 
 ## 4. Technical Specifications
 
 - **Architecture Overview**:
-  - `Repository API Boundary` -> `Core Domain (Registry + Resolver + Policy)` -> `Intelligence Layer (Graph + Metadata + optional RAG)` -> `Persistence (Artifacts + Postgres indexes + audit log)`.
-  - Repository is authoritative and execution-agnostic; it returns capabilities, not runtime outcomes.
+  - `Server API Boundary` -> `Core Domain (Catalog + Resolver + Policy)` -> `Intelligence Layer (Graph + Metadata + optional RAG)` -> `Persistence (Artifacts + Postgres indexes + audit log)`.
+  - Aptitude Server is authoritative and execution-agnostic; it returns capabilities, not runtime outcomes.
 
 ```mermaid
 flowchart LR
-  Author["Skill Author / CI"] --> API["Repository API Boundary"]
+  Author["Skill Author / CI"] --> API["Server API Boundary"]
   Resolver["aptitude-resolver"] --> API
-  API --> Domain["Core Domain (Registry + Resolver + Policy)"]
+  API --> Domain["Core Domain (Catalog + Resolver + Policy)"]
   Domain --> Intelligence["Intelligence Layer (Graph + Metadata + optional RAG)"]
   Domain --> Artifacts["Artifact Storage"]
   Domain --> DB["PostgreSQL Indexes"]
@@ -81,7 +81,7 @@ flowchart LR
 
 | Status | Technology | Used For |
 | --- | --- | --- |
-| Current (MVP baseline) | Python + FastAPI + OpenAPI | Repository API boundary (`publish`, `fetch`, `resolve`, reporting) and contract generation. |
+| Current (MVP baseline) | Python + FastAPI + OpenAPI | Server API boundary (`publish`, `fetch`, `resolve`, reporting) and contract generation. |
 | Current (MVP baseline) | Pydantic v2 | Request/response schema validation and contract safety. |
 | Current (MVP baseline) | Uvicorn (dev), Gunicorn + Uvicorn workers (prod) | ASGI serving in development and production. |
 | Current (MVP baseline) | PostgreSQL | Versions, metadata, relationship graph edges, evaluation data, and `repo_state_id` state tracking. |
@@ -99,12 +99,12 @@ flowchart LR
   - Provenance metadata required on publish (source, author, trust tier).
   - RBAC and policy gates on publication and retrieval.
   - Audit retention for compliance and forensic traceability.
-  - Store no user prompt content by default; only repository operational telemetry.
+  - Store no user prompt content by default; only server operational telemetry.
 
 ## 5. Risks & Roadmap
 
 - **Phased Rollout**:
-  - **MVP**: immutable artifact registry, upload/download, dependency resolution, minimal audit.
+  - **MVP**: immutable artifact catalog, upload/download, dependency resolution, minimal audit.
   - **v1.1**: conflicts/overlaps policy engine, metadata ranking, expanded trust controls.
   - **v2.0**: optional RAG retrieval layer, advanced provenance/signing, multi-tenant governance policies.
 
@@ -116,14 +116,14 @@ flowchart LR
 
 ## 6. Boundary Contract & Exit Criteria
 
-- **Contract Boundary (Repository -> Resolver)**:
-  - Repository exposes versioned APIs only (`resolve`, `fetch`, `download`, reporting); consumers must not couple to repository internals.
+- **Contract Boundary (Server -> Resolver)**:
+  - Aptitude Server exposes versioned APIs only (`resolve`, `fetch`, `download`, reporting); consumers must not couple to server internals.
   - `ResolvedBundle`, `ResolutionReport`, error taxonomy, and `repo_state_id` are canonical contract objects.
   - Deterministic output is guaranteed for identical request + `repo_state_id` input.
 
-- **Repository Exit Criteria (Gate Before Resolver MVP)**:
+- **Server Exit Criteria (Gate Before Resolver MVP)**:
   - Contract `v1` is frozen with documented backward-compatibility policy.
-  - Provider/consumer contract tests pass in CI for repository and resolver fixtures.
+  - Provider/consumer contract tests pass in CI for server and resolver fixtures.
   - SLO and determinism targets are verified (`GET /resolve` p95 <= 250 ms, reproducibility >= 99.99%).
   - Governance controls are enforced: immutable artifact versions, audit events, and RBAC for `publish`, `resolve`, `admin`.
   - Operational readiness is complete: dashboards, alerts, and incident runbooks for publish/resolve paths.

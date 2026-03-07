@@ -1,6 +1,6 @@
-# Aptitude - Repository
+# Aptitude Server
 
-Aptitude is a versioned, dependency-aware skill repository for AI systems, designed to manage skills as atomic, immutable, and composable capability units rather than ad hoc prompt fragments. It provides deterministic versioning, explicit dependency modeling, structured metadata enrichment, and evaluation-based ranking, enabling secure skill supply chains, reproducible compositions, controlled evolution, and data-driven selection of the most relevant and reliable capabilities.
+Aptitude is a versioned, dependency-aware skill server for AI systems, designed to manage skills as atomic, immutable, and composable capability units rather than ad hoc prompt fragments. It provides deterministic versioning, explicit dependency modeling, structured metadata enrichment, and evaluation-based ranking, enabling secure skill supply chains, reproducible compositions, controlled evolution, and data-driven selection of the most relevant and reliable capabilities.
 
 ---
 
@@ -40,7 +40,7 @@ Aptitude introduces software-grade governance through immutable versioning, expl
 
 ## **Design**
 
-Aptitude is designed as a layered, graph-aware repository that manages AI skills as immutable, versioned assets and resolves them into deterministic, reproducible bundles.
+Aptitude is designed as a layered, graph-aware server that manages AI skills as immutable, versioned assets and resolves them into deterministic, reproducible bundles.
 
 The system centralizes governance, resolution logic, and metadata-driven optimization within a single authoritative service. It is execution-agnostic and does not invoke models.
 
@@ -49,10 +49,10 @@ flowchart TB
 
 Client["Client / Loader / SDK"]
 
-Interface["Repository Interface"]
+Interface["Server Interface"]
 
 Core["Core Domain Layer
-- Asset Registry
+- Asset Catalog
 - Resolution Engine
 - Policy"]
 
@@ -86,9 +86,9 @@ Interface --> Audit
 
 ### **Client Layer**
 
-External consumers such as loaders, SDKs, and administrative tooling interact with the repository through a controlled interface. This layer is responsible only for requesting assets or resolved bundles.
+External consumers such as loaders, SDKs, and administrative tooling interact with the server through a controlled interface. This layer is responsible only for requesting assets or resolved bundles.
 
-It does not contain domain intelligence. All dependency traversal, conflict validation, ranking, and optimization remain inside the repository.
+It does not contain domain intelligence. All dependency traversal, conflict validation, ranking, and optimization remain inside the server.
 
 Request Handling
 
@@ -102,15 +102,15 @@ Boundary
 - Does not enforce policy rules.
 - Does not apply ranking or optimization logic.
 
-### **Repository Interface Layer**
+### **Server Interface Layer**
 
-The Repository Interface Layer defines the stable boundary of the system. It provides controlled access to assets, metadata, graphs, and resolution capabilities.
+The Server Interface Layer defines the stable boundary of the system. It provides controlled access to assets, metadata, graphs, and resolution capabilities.
 
 This layer abstracts internal storage and resolution mechanics behind a governed contract.
 
 Access Control
 
-- Enforces repository-level governance and policy boundaries.
+- Enforces server-level governance and policy boundaries.
 - Validates incoming requests before resolution.
 - Ensures only published, valid versions are accessible.
 
@@ -122,11 +122,11 @@ Interface Stability
 
 ### **Core Domain Layer**
 
-The Core Domain Layer contains the authoritative logic of the repository. It governs asset lifecycle and constructs deterministic bundles from requested skills.
+The Core Domain Layer contains the authoritative logic of the server. It governs asset lifecycle and constructs deterministic bundles from requested skills.
 
 This layer defines how assets are interpreted and assembled.
 
-Asset Registry
+Asset Catalog
 
 - Manages skill lifecycle and immutability.
 - Ensures each version represents a fixed, reproducible state.
@@ -144,7 +144,7 @@ Policy
 
 - Defines trust tiers and governance rules.
 - Controls resolution constraints and selection strategy.
-- Ensures reproducibility given version and repository state.
+- Ensures reproducibility given version and server state.
 
 ### **Intelligence Layer**
 
@@ -186,11 +186,11 @@ Graph Store
 
 - Persists typed relationships between skill versions.
 - Enables efficient dependency traversal.
-- Maintains consistency across repository state.
+- Maintains consistency across server state.
 
 ### **Observability & Audit Layer**
 
-The Observability and Audit Layer provides traceability across repository operations.
+The Observability and Audit Layer provides traceability across server operations.
 
 It ensures resolution behavior is explainable and governed.
 
@@ -237,7 +237,7 @@ Once published, the version becomes immutable and reproducible.
     - A client requests a specific skill version or a resolved bundle.
     - Policy constraints are applied.
 2. **Resolution**
-    - The repository constructs a deterministic bundle.
+    - The server constructs a deterministic bundle.
     - Dependencies are expanded and validated.
     - Redundancies are eliminated.
 3. **Delivery**
@@ -245,7 +245,7 @@ Once published, the version becomes immutable and reproducible.
     - A ResolutionReport provides traceability.
     - The client may cache the result.
 
-The repository remains execution-agnostic. It delivers validated capability bundles, not runtime execution.
+The server remains execution-agnostic. It delivers validated capability bundles, not runtime execution.
 
 ### **Skill Evaluation Flow**
 
@@ -266,13 +266,13 @@ The repository remains execution-agnostic. It delivers validated capability bund
     - Metadata indexes are refreshed.
     - The skill artifact itself remains unchanged.
 
-Evaluation enriches the Intelligence Layer without mutating the skill definition. Future resolution decisions may incorporate these updated signals while preserving determinism relative to repository state.
+Evaluation enriches the Intelligence Layer without mutating the skill definition. Future resolution decisions may incorporate these updated signals while preserving determinism relative to server state.
 
 ---
 
 ## **Planning**
 
-Goal: each step ends with a **complete, testable product** (a ‚Äúvertical slice‚Äù), even if minimal. Steps are atomic and build cleanly toward the full repository.
+Goal: each step ends with a **complete, testable product** (a ‚Äúvertical slice‚Äù), even if minimal. Steps are atomic and build cleanly toward the full server.
 
 **Default implementation choice (recommended)**
 
@@ -283,7 +283,7 @@ Goal: each step ends with a **complete, testable product** (a ‚Äúvertical slice‚
 - Validation/contracts: **Pydantic v2**
 - Packaging: **Docker + Docker Compose**
 
-### **Step 1 ‚Äî Read-Only Skill Registry (MVP-0)**
+### **Step 1 ‚Äî Read-Only Skill Catalog (MVP-0)**
 
 **Outcome (testable):** You can store skills and fetch skill@version reliably.
 
@@ -304,7 +304,7 @@ Goal: each step ends with a **complete, testable product** (a ‚Äúvertical slice‚
 **Architecture concepts**
 
 - Immutable artifacts
-- Repository interface boundary
+- Server interface boundary
 - Basic audit log (append-only file)
 
 **Tests**
@@ -325,13 +325,13 @@ Goal: each step ends with a **complete, testable product** (a ‚Äúvertical slice‚
 **Stack**
 
 - Graph modeling in PostgreSQL: adjacency table edges(from, to, type).
-- Data access: **SQLAlchemy 2.0** with explicit repository queries.
+- Data access: **SQLAlchemy 2.0** with explicit server queries.
 - Migrations: **Alembic**.
 - Keep everything in PostgreSQL for now.
 
 **Architecture concepts**
 
-- Resolver lives in repository service (authoritative)
+- Resolver lives in server service (authoritative)
 - Deterministic ordering rule (e.g., topo sort + stable tie-break by id)
 
 **Tests**
@@ -346,7 +346,7 @@ Goal: each step ends with a **complete, testable product** (a ‚Äúvertical slice‚
 **Scope**
 
 - Introduce metadata fields: provenance, created_at, updated_at, footprint_estimate.
-- Add repository endpoints to query/filter skills (by tag, status, etc.).
+- Add server endpoints to query/filter skills (by tag, status, etc.).
 - Derive footprint_estimate (simple heuristic) and store it.
 
 **Stack**
@@ -367,7 +367,7 @@ Goal: each step ends with a **complete, testable product** (a ‚Äúvertical slice‚
 
 ### **Step 4 ‚Äî Conflicts + Overlaps (Governed Composition) (MVP-3)**
 
-**Outcome (testable):** Repository can reject invalid compositions and reduce redundancy.
+**Outcome (testable):** Server can reject invalid compositions and reduce redundancy.
 
 **Scope**
 
@@ -399,7 +399,7 @@ Goal: each step ends with a **complete, testable product** (a ‚Äúvertical slice‚
 - Add EvaluationRun entity and store results per skill@version.
 - Compute quality_score from benchmark outputs.
 - Update metadata index and expose it.
-- Add repository-state snapshot mechanism for reproducibility (minimal).
+- Add server-state snapshot mechanism for reproducibility (minimal).
 
 **Stack**
 
@@ -436,7 +436,7 @@ Goal: each step ends with a **complete, testable product** (a ‚Äúvertical slice‚
 
 **Architecture concepts**
 
-- Trust enforcement at repository boundary
+- Trust enforcement at server boundary
 - Audit-first design
 
 **Tests**
@@ -452,7 +452,7 @@ Goal: each step ends with a **complete, testable product** (a ‚Äúvertical slice‚
 
 **FastAPI**
 
-Primary API framework and repository interface boundary.
+Primary API framework and server interface boundary.
 
 **Pydantic v2**
 
@@ -476,7 +476,7 @@ Relational storage for:
 - Metadata
 - Relationship graph (edges)
 - Evaluation results
-- Repository state snapshots
+- Server state snapshots
 
 PostgreSQL is the default from the first milestone to keep behavior aligned with production-grade concurrency and indexing needs.
 

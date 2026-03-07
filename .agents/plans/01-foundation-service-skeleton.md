@@ -16,7 +16,7 @@ Establish a runnable Python service (FastAPI) with clear layer boundaries, confi
 - Add health and readiness endpoints.
 
 ## Architecture Impact
-- Introduces the repository interface boundary and dependency direction.
+- Introduces the server interface boundary and dependency direction.
 - Sets persistence and observability foundations without domain behavior.
 
 ## Deliverables

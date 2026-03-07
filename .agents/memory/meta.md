@@ -1,6 +1,6 @@
-# Repo Meta Memory
+# Server Meta Memory
 
-- Product: Aptitude skill repository.
+- Product: Aptitude skill server.
 - Runtime: Go service (primary).
 - Core principles: immutability, determinism, explicit relationships, governance, auditability.
 - Architecture source of truth: `docs/overview.md`.

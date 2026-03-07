@@ -1,4 +1,4 @@
-# aptitude-server Repository
+# aptitude-server
 
 ![Python Version](https://img.shields.io/badge/python-3.12+-3776AB?logo=python)
 ![License](https://img.shields.io/github/license/y0ncha/aptitude-server)
@@ -6,10 +6,10 @@
 ![Issues](https://img.shields.io/github/issues/y0ncha/aptitude-server)
 ![Status](https://img.shields.io/badge/status-active--development-blue)
 
-Aptitude is a versioned, dependency-aware skill repository for AI systems.  
+Aptitude is a versioned, dependency-aware skill server for AI systems.  
 It manages skills as atomic, immutable, and composable capability units rather than ad hoc prompt fragments.
 
-The repository provides:
+The server provides:
 
 - Deterministic versioning
 - Explicit dependency modeling
@@ -25,16 +25,16 @@ The repository provides:
 - All relationships are explicit and typed
 - Resolution is centralized and deterministic
 - Metadata drives optimization, not heuristics
-- The repository is execution-agnostic
-- Reproducibility is guaranteed by version + repository state
+- The server is execution-agnostic
+- Reproducibility is guaranteed by version + server state
 
 ---
 
 ## Architecture (High-Level)
 
 Client / Loader / SDK  
-→ Repository Interface  
-→ Core Domain (Registry + Resolver + Policy)  
+→ Server Interface  
+→ Core Domain (Catalog + Resolver + Policy)  
 → Intelligence Layer (Graph + Metadata)  
 → Persistence (Artifacts + Index + Graph Store)
 

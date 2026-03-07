@@ -1,7 +1,7 @@
-# Plan 07 — Evaluation and Repo State Reproducibility
+# Plan 07 — Evaluation and Server State Reproducibility
 
 ## Goal
-Add evaluation signals and repository state snapshots so ranking can evolve without breaking reproducibility.
+Add evaluation signals and server state snapshots so ranking can evolve without breaking reproducibility.
 
 ## Stack Alignment
 - Runtime: Python 3.12+

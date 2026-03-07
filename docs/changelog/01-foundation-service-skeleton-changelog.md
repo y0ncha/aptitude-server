@@ -150,7 +150,7 @@ Rules to preserve:
 
 ## 6) Tradeoffs and known limitations
 
-- No domain resolver/registry logic yet by design (scope control).
+- No domain resolver/catalog logic yet by design (scope control).
 - Integration tests currently depend on an external running Postgres instance.
 - Readiness probe currently checks connectivity only (`SELECT 1`) via a persistence adapter, not migration drift or deeper invariants.
 - Logging uses stdlib baseline; structured correlation fields can be added in later operability milestone.
@@ -159,8 +159,8 @@ These are acceptable for Milestone 01 because the objective is a stable skeleton
 
 ## 7) Notes for future milestones
 
-1. Milestone 02 (immutable skill registry):
-- Introduce core service modules for registry behavior, not in route files.
+1. Milestone 02 (immutable skill catalog):
+- Introduce core service modules for catalog behavior, not in route files.
 - Add persistence repositories instead of direct session-level access from handlers.
 
 2. Milestone 03 (deterministic resolution):
