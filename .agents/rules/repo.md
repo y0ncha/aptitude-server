@@ -21,7 +21,7 @@
 - Immutable skill versions.
 - Deterministic `ResolvedBundle` generation.
 - Explicit typed relationships (`depends_on`, `conflicts_with`, `overlaps_with`, `extends`).
-- Execution-agnostic repository behavior.
+- Execution-agnostic server behavior.
 
 ## Naming Convention
 - Use `kebab-case` for new filenames, rule identifiers, and plan slugs unless an external framework/tool requires a different format.
@@ -44,7 +44,7 @@
 - Update these files when relevant behavior changes:
   - `.agents/plans/plan-XX-*.md` for milestone scope/acceptance updates
   - `.agents/plans/roadmap.md` for sequencing changes
-  - `.agents/memory/meta.md` for stable product/repo facts
+  - `.agents/memory/meta.md` for stable product/server facts
 - For new APIs or payloads, document endpoint, request shape, response shape, and error cases.
 - Document deterministic rules explicitly (ordering, tie-breakers, policy precedence).
 

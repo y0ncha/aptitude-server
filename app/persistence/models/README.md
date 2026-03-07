@@ -1,6 +1,6 @@
 # app.persistence.models module
 
-SQLAlchemy ORM models mapped to repository tables.
+SQLAlchemy ORM models mapped to Aptitude Server tables.
 
 ## Purpose
 
@@ -18,4 +18,4 @@ migrations.
 
 ## Notes
 
-Keep model docs aligned with Alembic migrations and repository adapter behavior.
+Keep model docs aligned with Alembic migrations and persistence adapter behavior.

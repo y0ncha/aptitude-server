@@ -1,4 +1,4 @@
-"""Core immutable skill registry service and domain models."""
+"""Core immutable skill catalog service and domain models."""
 
 from __future__ import annotations
 
@@ -107,7 +107,7 @@ class SkillVersionSummary:
 
 
 class SkillRegistryError(RuntimeError):
-    """Base domain error for immutable skill registry operations."""
+    """Base domain error for immutable skill catalog operations."""
 
 
 class InvalidManifestError(SkillRegistryError):

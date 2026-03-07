@@ -1,4 +1,4 @@
-"""SQLAlchemy adapter for immutable skill registry persistence port."""
+"""SQLAlchemy adapter for immutable skill catalog persistence port."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from app.persistence.models.skill_version_checksum import SkillVersionChecksum
 
 
 class SQLAlchemySkillRegistryRepository(SkillRegistryPort):
-    """SQLAlchemy implementation for immutable skill registry persistence."""
+    """SQLAlchemy implementation for immutable skill catalog persistence."""
 
     def __init__(self, session_factory: sessionmaker[Session]) -> None:
         self._session_factory = session_factory

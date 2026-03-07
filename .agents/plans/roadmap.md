@@ -1,11 +1,11 @@
 # Aptitude Roadmap
 
 ## Goal
-Deliver a production-ready, deterministic skill repository in Python/FastAPI through incremental, testable milestones.
+Deliver a production-ready, deterministic skill server in Python/FastAPI through incremental, testable milestones.
 
 ## Alignment Sources
 - Scope boundary and ownership: [`docs/scope.md`](../../docs/scope.md)
-- Repository requirements and KPIs: [`docs/repository-prd.md`](../../docs/repository-prd.md)
+- Server requirements and KPIs: [`docs/repository-prd.md`](../../docs/repository-prd.md)
 
 ## Platform Defaults
 - Database: PostgreSQL (primary from the first milestone).
@@ -13,9 +13,9 @@ Deliver a production-ready, deterministic skill repository in Python/FastAPI thr
 - Search: PostgreSQL-native indexing and full-text capabilities.
 
 ## Boundary Guardrails
-- This roadmap covers `aptitude-repository` only.
+- This roadmap covers `aptitude-server` only.
 - MCP/CLI prompt interfaces, plugin machines, and runtime execution planning belong to `aptitude-resolver` and are out of scope here.
-- Repository remains execution-agnostic and exposes governed APIs for publish, fetch, resolve, and reports.
+- Server remains execution-agnostic and exposes governed APIs for publish, fetch, resolve, and reports.
 
 ## Milestones
 1. `01-foundation-service-skeleton.md`

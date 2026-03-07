@@ -10,9 +10,11 @@ __pycache__/
 .venv/
 venv/
 ENV/
+.env
 .env/
 .env.*
 .direnv/
+
 
 # Packaging / build
 build/

@@ -5,7 +5,7 @@ HTTP API routers for the service.
 ## Purpose
 
 Defines FastAPI routes, request validation, response schemas, and API error
-mapping for health and skill registry operations.
+mapping for health and skill catalog operations.
 
 ## Key Files
 

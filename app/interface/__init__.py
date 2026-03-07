@@ -1,1 +1,1 @@
-"""Repository interface layer."""
+"""Server interface layer."""

@@ -4,7 +4,7 @@ Core domain logic and cross-layer contracts.
 
 ## Purpose
 
-Defines business behavior for immutable skill registry operations and the ports
+Defines business behavior for immutable skill catalog operations and the ports
 that infrastructure layers implement.
 
 ## Key Files

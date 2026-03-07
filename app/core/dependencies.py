@@ -35,7 +35,7 @@ ReadinessServiceDep = Annotated[ReadinessService, Depends(get_readiness_service)
 
 
 def get_skill_registry_service(request: Request) -> SkillRegistryService:
-    """Return the immutable skill registry service from app state.
+    """Return the immutable skill catalog service from app state.
 
     Raises:
         RuntimeError: If startup wiring did not initialize
@@ -43,9 +43,9 @@ def get_skill_registry_service(request: Request) -> SkillRegistryService:
     """
     service = getattr(request.app.state, "skill_registry_service", None)
     if not isinstance(service, SkillRegistryService):
-        raise RuntimeError("Skill registry service is not initialized.")
+        raise RuntimeError("Skill catalog service is not initialized.")
     return service
 
 
-# Typed alias for injecting the skill registry service in endpoint signatures.
+# Typed alias for injecting the skill catalog service in endpoint signatures.
 SkillRegistryServiceDep = Annotated[SkillRegistryService, Depends(get_skill_registry_service)]

@@ -14,7 +14,7 @@ Implements core persistence ports for:
 
 - `db.py`: engine/session lifecycle and readiness probe adapter.
 - `artifact_store.py`: filesystem artifact adapter.
-- `skill_registry_repository.py`: SQLAlchemy skill registry repository adapter.
+- `skill_registry_repository.py`: SQLAlchemy skill catalog persistence adapter.
 - `models/`: ORM models.
 
 ## Contracts
