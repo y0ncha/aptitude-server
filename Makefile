@@ -1,6 +1,6 @@
 UV ?= UV_CACHE_DIR=.uv-cache uv
 
-.PHONY: run test lint format typecheck migrate-up migrate-down db-up db-down
+.PHONY: run debug test lint format typecheck migrate-up migrate-down db-up db-down
 
 run:
 	@printf "\033[1;36m==>\033[0m \033[1mStarting FastAPI dev server\033[0m\n"
@@ -8,6 +8,14 @@ run:
 	@printf "\033[0;36m   Docs:\033[0m  http://127.0.0.1:8000/docs\n"
 	@printf "\033[0;36m   Stop:\033[0m  Ctrl+C\n\n"
 	@$(UV) run python main.py
+
+debug:
+	@printf "\033[1;36m==>\033[0m \033[1mStarting FastAPI dev server in debug mode\033[0m\n"
+	@printf "\033[0;36m    API:\033[0m  http://127.0.0.1:8000\n"
+	@printf "\033[0;36m   Docs:\033[0m  http://127.0.0.1:8000/docs\n"
+	@printf "\033[0;36m  Level:\033[0m  DEBUG\n"
+	@printf "\033[0;36m   Stop:\033[0m  Ctrl+C\n\n"
+	LOG_LEVEL=DEBUG UVICORN_RELOAD=false uv run python main.py
 
 test:
 	$(UV) run --extra dev pytest

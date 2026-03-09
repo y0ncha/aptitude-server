@@ -1,7 +1,7 @@
 # Plan 04 — Server API Contract V1
 
 ## Goal
-Stabilize public API contracts and validation behavior to keep consumers insulated from internal refactors and aligned to the server/resolver boundary.
+Stabilize public repository API contracts and validation behavior to keep consumers insulated from internal refactors and aligned to the PyPI-like server/resolver boundary.
 
 ## Stack Alignment
 - API framework: FastAPI (OpenAPI-first contract generation)
@@ -10,34 +10,36 @@ Stabilize public API contracts and validation behavior to keep consumers insulat
 - Data layer compatibility: SQLAlchemy 2.0 + Alembic
 
 ## Scope
-- Define OpenAPI v1 for implemented endpoints.
+- Define OpenAPI v1 for implemented repository endpoints.
 - Add DTO layer separate from core domain models.
 - Standardize error envelope and error codes.
 - Enforce request/response validation rules.
-- Lock server-facing contract required by `docs/scope.md`: publish, fetch, resolve, bundle download, report retrieval.
+- Lock server-facing contract required by `docs/scope.md`: publish, exact fetch, list versions, dependency metadata retrieval, and discovery read models for candidate generation.
 
 ## Architecture Impact
 - Hardens server interface layer as stable contract boundary.
 - Prevents leakage of internal models to clients.
+- Enables resolver teams to treat server APIs as durable input contracts.
 
 ## Deliverables
 - OpenAPI spec covering all current v1 endpoints.
 - OpenAPI coverage for:
   - `POST /skills/publish`
   - `GET /skills/{id}/{version}`
-  - `POST /resolve`
-  - `GET /bundles/{bundle_id}`
-  - `GET /reports/{resolution_id}`
+  - `GET /skills/{id}`
+  - `GET /v1/skills/search` (if implemented in this phase, otherwise documented as pending v1.1)
 - Unified error response shape and status mapping.
 - Validation middleware for payload and query constraints.
-- Contract tests generated from spec examples.
+- Search contract notes clarifying that `GET /v1/skills/search` is for indexed candidate retrieval and advisory ranking, not final resolver choice.
+- Provider/consumer contract tests generated from spec examples.
 - Learning note on anti-corruption layer and compatibility design.
 
 ## Acceptance Criteria
 - API behavior matches OpenAPI examples.
 - Invalid payloads fail with consistent error format.
 - Existing endpoints keep backward-compatible response fields.
-- No contract drift against required server endpoints.
+- No contract drift against required repository endpoints.
+- Contract explicitly documents that prompt interpretation, reranking, final selection, and dependency solving are resolver-owned.
 
 ## Test Plan
 - Contract tests for request and response examples.

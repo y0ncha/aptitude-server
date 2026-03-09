@@ -1,12 +1,14 @@
 # Aptitude Agent Contract
 
 ## General Idea
-Aptitude is a Python-based, execution-agnostic server for immutable skills with deterministic dependency resolution, explicit relationships, policy governance, and auditable outcomes.
+Aptitude is a Python-based, execution-agnostic registry server for immutable
+skills with deterministic dependency metadata contracts, explicit relationships,
+policy governance, and auditable outcomes.
 
 ## Source and Instruction Files
 1. Product and architecture intent: [`docs/overview.md`](../docs/overview.md)
 2. Server/Resolver boundary contract: [`docs/scope.md`](../docs/scope.md)
-3. Server product requirements: [`docs/repository-prd.md`](../docs/repository-prd.md)
+3. Server product requirements: [`docs/prd.md`](../docs/prd.md)
 4. Repo operating rules: [`rules/repo.md`](rules/repo.md)
 5. Roadmap and sequencing: [`plans/roadmap.md`](plans/roadmap.md)
 6. Plan execution files: `plans/XX-*.md` (append-only milestones)
@@ -17,17 +19,20 @@ If rules conflict, follow the highest item unless the server includes a newer ex
 
 ## Collaboration and Learning (Mandatory)
 - Keep Yonatan involved in non-trivial design and implementation decisions.
-- Teach while building: explain relevant Go concepts and system design tradeoffs in short, concrete terms.
-- For non-trivial decisions, always present at least two design options with pros, cons, and impact.
-- Ask explicitly which option Yonatan prefers before locking the approach.
+- Teach while building: explain relevant Python/FastAPI/backend concepts and
+  system design tradeoffs in short, concrete terms.
+- For non-trivial decisions, present options with pros, cons, and impact when
+  the tradeoff is still open.
 - Keep changes incremental and reviewable with clear test notes.
 
 ## Core Invariants
 - Published skill versions are immutable.
-- Resolution is deterministic for the same request and server state.
+- Resolver-side solving is deterministic for the same request, resolver version,
+  and pinned registry state.
 - Dependencies and relationships are explicit and typed.
 - Governance and policy enforcement are centralized in the server.
-- Resolution decisions remain explainable through `ResolutionReport` and audit records.
+- Server returns immutable metadata contracts and audit records; it does not
+  return canonical solved bundles or execution plans.
 - Layering dependency direction is strict:
   - `app/interface/**` may import only core-facing modules (not persistence).
   - `app/core/**` must not import persistence modules directly.

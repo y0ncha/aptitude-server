@@ -1,0 +1,13 @@
+$kind: collection
+
+name: Sanity
+description: |-
+  Happy-path requests for the Aptitude Skills API.
+
+  Expected run order:
+    1. Healthz
+    2. Readyz
+    3. Publish Skill v1
+    4. Publish Skill v2
+    5. Fetch Published Skill
+    6. List Published Skill Versions

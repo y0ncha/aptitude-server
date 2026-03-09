@@ -1,4 +1,4 @@
-"""SQLAlchemy adapter for immutable skill catalog persistence port."""
+"""SQLAlchemy adapters for immutable skill catalog persistence ports."""
 
 from __future__ import annotations
 
@@ -18,8 +18,11 @@ from app.core.ports import (
 )
 from app.core.skill_registry import DuplicateSkillVersionError
 from app.persistence.models.skill import Skill
+from app.persistence.models.skill_relationship_edge import SkillRelationshipEdge
 from app.persistence.models.skill_version import SkillVersion
 from app.persistence.models.skill_version_checksum import SkillVersionChecksum
+
+_RELATIONSHIP_TYPES = ("depends_on", "extends")
 
 
 class SQLAlchemySkillRegistryRepository(SkillRegistryPort):
@@ -61,6 +64,13 @@ class SQLAlchemySkillRegistryRepository(SkillRegistryPort):
                 )
                 session.add(skill_version)
                 session.flush()
+
+                session.add_all(
+                    _build_relationship_edges(
+                        source_skill_version_id=skill_version.id,
+                        manifest_json=manifest_json,
+                    )
+                )
 
                 checksum_row = SkillVersionChecksum(
                     skill_version_fk=skill_version.id,
@@ -160,6 +170,59 @@ def _to_stored_skill_version(
         checksum_digest=checksum.digest,
         published_at=_ensure_datetime(skill_version.published_at),
     )
+
+
+def _build_relationship_edges(
+    *,
+    source_skill_version_id: int,
+    manifest_json: dict[str, Any],
+) -> tuple[SkillRelationshipEdge, ...]:
+    relationships: set[tuple[str, str, str]] = set()
+    for edge_type in _RELATIONSHIP_TYPES:
+        raw_entries = manifest_json.get(edge_type)
+        if not isinstance(raw_entries, list):
+            continue
+        for item in raw_entries:
+            if not isinstance(item, dict):
+                continue
+            target_skill_id = item.get("skill_id")
+            target_version_selector = _extract_target_version_selector(
+                edge_type=edge_type,
+                item=item,
+            )
+            if (
+                not isinstance(target_skill_id, str)
+                or not isinstance(target_version_selector, str)
+            ):
+                continue
+            if not target_skill_id or not target_version_selector:
+                continue
+            relationships.add((edge_type, target_skill_id, target_version_selector))
+
+    return tuple(
+        SkillRelationshipEdge(
+            source_skill_version_fk=source_skill_version_id,
+            edge_type=edge_type,
+            target_skill_id=target_skill_id,
+            target_version_selector=target_version_selector,
+        )
+        for edge_type, target_skill_id, target_version_selector in sorted(relationships)
+    )
+
+
+def _extract_target_version_selector(*, edge_type: str, item: dict[str, Any]) -> str | None:
+    raw_version = item.get("version")
+    if isinstance(raw_version, str):
+        return raw_version
+
+    if edge_type != "depends_on":
+        return None
+
+    raw_constraint = item.get("version_constraint")
+    if isinstance(raw_constraint, str):
+        return raw_constraint
+
+    return None
 
 
 def _is_duplicate_skill_version_error(error: IntegrityError) -> bool:

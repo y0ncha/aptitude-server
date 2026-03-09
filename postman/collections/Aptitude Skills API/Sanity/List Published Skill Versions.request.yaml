@@ -1,0 +1,37 @@
+$kind: http-request
+order: 6000
+
+method: GET
+url: '{{baseUrl}}/skills/{{sanity_skill_id}}'
+
+headers:
+  - key: Accept
+    value: application/json
+    description: 'Request the published versions for the generated sanity skill'
+
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      let json = null;
+      try {
+        json = pm.response.json();
+      } catch (error) {
+        json = null;
+      }
+
+      pm.test('Status is 200', () => {
+        pm.response.to.have.status(200);
+      });
+
+      pm.test('List response contains the two published sanity versions in newest-first order', () => {
+        pm.expect(json).to.be.an('object');
+        const versions = json.versions.map((item) => item.version);
+        pm.expect(json.skill_id).to.eql(pm.collectionVariables.get('sanity_skill_id'));
+        pm.expect(versions.slice(0, 2)).to.eql([
+          pm.collectionVariables.get('sanity_version_2'),
+          pm.collectionVariables.get('sanity_version_1'),
+        ]);
+      });
+
+      pm.execution.setNextRequest(null);

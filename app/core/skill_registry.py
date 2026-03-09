@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -35,6 +36,30 @@ class SkillRelationshipRef:
 
 
 @dataclass(frozen=True, slots=True)
+class SkillDependencyRef:
+    """Typed direct dependency declaration authored for immutable metadata."""
+
+    skill_id: str
+    version: str | None = None
+    version_constraint: str | None = None
+    optional: bool | None = None
+    markers: tuple[str, ...] | None = None
+
+    def to_json(self) -> dict[str, Any]:
+        """Return authored dependency metadata without injecting defaults."""
+        payload: dict[str, Any] = {"skill_id": self.skill_id}
+        if self.version is not None:
+            payload["version"] = self.version
+        if self.version_constraint is not None:
+            payload["version_constraint"] = self.version_constraint
+        if self.optional is not None:
+            payload["optional"] = self.optional
+        if self.markers is not None:
+            payload["markers"] = list(self.markers)
+        return payload
+
+
+@dataclass(frozen=True, slots=True)
 class SkillManifestData:
     """Core manifest data passed from interface to core."""
 
@@ -44,13 +69,17 @@ class SkillManifestData:
     name: str
     description: str | None
     tags: tuple[str, ...]
-    depends_on: tuple[SkillRelationshipRef, ...]
+    depends_on: tuple[SkillDependencyRef, ...]
     extends: tuple[SkillRelationshipRef, ...]
     conflicts_with: tuple[SkillRelationshipRef, ...]
     overlaps_with: tuple[SkillRelationshipRef, ...]
+    raw_manifest_json: dict[str, Any] | None = None
 
     def to_json(self) -> dict[str, Any]:
         """Return deterministic JSON projection used for persistence."""
+        if self.raw_manifest_json is not None:
+            return deepcopy(self.raw_manifest_json)
+
         return {
             "schema_version": self.schema_version,
             "skill_id": self.skill_id,

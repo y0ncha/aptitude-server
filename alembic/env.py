@@ -16,10 +16,12 @@ from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 from app.core.settings import get_settings, reset_settings_cache
+
 # Import all mapped tables so they are registered on Base.metadata.
 from app.persistence.models import (
     audit_event,  # noqa: F401
     skill,  # noqa: F401
+    skill_relationship_edge,  # noqa: F401
     skill_version,  # noqa: F401
     skill_version_checksum,  # noqa: F401
 )

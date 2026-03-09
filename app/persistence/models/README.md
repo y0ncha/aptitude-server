@@ -13,6 +13,8 @@ migrations.
 - `skill.py`: logical skill root table (`skills`).
 - `skill_version.py`: immutable version metadata (`skill_versions`).
 - `skill_version_checksum.py`: checksum metadata (`skill_version_checksums`).
+- `skill_relationship_edge.py`: typed relationship edges (`skill_relationship_edges`)
+  with authored target version selectors for dependency/read-model projections.
 - `audit_event.py`: audit event table (`audit_events`).
 - `__init__.py`: package exports.
 

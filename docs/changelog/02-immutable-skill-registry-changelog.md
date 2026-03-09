@@ -1,73 +1,102 @@
-# Milestone 02 Changelog - Immutable Skill Catalog
+# Milestone 02 Changelog - Immutable Skill Registry
 
-This changelog documents implementation of [.agents/plans/02-immutable-skill-registry.md](/Users/yonatan/Dev/aptitude-server/.agents/plans/02-immutable-skill-registry.md).
+This changelog documents implementation alignment for [.agents/plans/02-immutable-skill-registry.md](/Users/yonatan/Dev/Aptitude/aptitude-server/.agents/plans/02-immutable-skill-registry.md).
 
 ## Scope Delivered
 
-- Added immutable publish/fetch/list endpoints (canonical contract):
-  - `POST /skills/publish`: Publishes a new immutable skill version (manifest + artifact), persists checksum/metadata, and rejects duplicate `skill_id+version` with `409` ([API route](/Users/yonatan/Dev/aptitude-server/app/interface/api/skills.py), [core publish logic](/Users/yonatan/Dev/aptitude-server/app/core/skill_registry.py), [persistence uniqueness handling](/Users/yonatan/Dev/aptitude-server/app/persistence/skill_registry_repository.py)).
-  - `GET /skills/{id}/{version}`: Fetches a specific immutable skill version and verifies checksum on read to detect corruption ([API route](/Users/yonatan/Dev/aptitude-server/app/interface/api/skills.py), [core fetch + integrity check](/Users/yonatan/Dev/aptitude-server/app/core/skill_registry.py)).
-  - `GET /skills/{id}`: Lists available versions (and related metadata) for the given skill id ([API route](/Users/yonatan/Dev/aptitude-server/app/interface/api/skills.py), [persistence listing order](/Users/yonatan/Dev/aptitude-server/app/persistence/skill_registry_repository.py)).
-- Added strict `SkillManifest` validation with SemVer and typed relationship fields ([manifest DTO](/Users/yonatan/Dev/aptitude-server/app/interface/api/skills.py), [manifest unit tests](/Users/yonatan/Dev/aptitude-server/tests/unit/test_skill_manifest.py)).
-- Added immutable artifact filesystem storage with deterministic path convention ([filesystem adapter](/Users/yonatan/Dev/aptitude-server/app/persistence/artifact_store.py)).
-- Added checksum persistence and read-time checksum verification ([core checksum flow](/Users/yonatan/Dev/aptitude-server/app/core/skill_registry.py), [checksum model](/Users/yonatan/Dev/aptitude-server/app/persistence/models/skill_version_checksum.py), [migration](/Users/yonatan/Dev/aptitude-server/alembic/versions/0002_immutable_skill_registry.py)).
-- Added audit event recording for publish/read/list and integrity violation detection ([audit events in core service](/Users/yonatan/Dev/aptitude-server/app/core/skill_registry.py), [audit adapter](/Users/yonatan/Dev/aptitude-server/app/audit/recorder.py), [audit model](/Users/yonatan/Dev/aptitude-server/app/persistence/models/audit_event.py)).
-- Added PostgreSQL schema for `skills`, `skill_versions`, and `skill_version_checksums` ([migration](/Users/yonatan/Dev/aptitude-server/alembic/versions/0002_immutable_skill_registry.py), [skills model](/Users/yonatan/Dev/aptitude-server/app/persistence/models/skill.py), [skill version model](/Users/yonatan/Dev/aptitude-server/app/persistence/models/skill_version.py), [checksum model](/Users/yonatan/Dev/aptitude-server/app/persistence/models/skill_version_checksum.py)).
+- Immutable registry routes are implemented in [app/interface/api/skills.py](/Users/yonatan/Dev/Aptitude/aptitude-server/app/interface/api/skills.py):
+  - `POST /skills/publish`
+  - `GET /skills/{id}/{version}`
+  - `GET /skills/{id}`
+- Publish, exact fetch, duplicate rejection, checksum generation, and read-time integrity verification are handled by [app/core/skill_registry.py](/Users/yonatan/Dev/Aptitude/aptitude-server/app/core/skill_registry.py).
+- Immutable artifact bytes and manifest snapshots are written to filesystem storage by [app/persistence/artifact_store.py](/Users/yonatan/Dev/Aptitude/aptitude-server/app/persistence/artifact_store.py) using the `skills/<skill_id>/<version>/` layout.
+- Version metadata, checksum rows, and deterministic version listings are persisted through [app/persistence/skill_registry_repository.py](/Users/yonatan/Dev/Aptitude/aptitude-server/app/persistence/skill_registry_repository.py) and [alembic/versions/0002_immutable_skill_registry.py](/Users/yonatan/Dev/Aptitude/aptitude-server/alembic/versions/0002_immutable_skill_registry.py).
+- Audit recording for publish, read, list, and integrity-violation events is implemented by [app/audit/recorder.py](/Users/yonatan/Dev/Aptitude/aptitude-server/app/audit/recorder.py) and [app/persistence/models/audit_event.py](/Users/yonatan/Dev/Aptitude/aptitude-server/app/persistence/models/audit_event.py).
+
+## Architecture Snapshot
+
+```mermaid
+flowchart LR
+    Client["Publisher / Resolver"] --> API["Skills API<br/>app/interface/api/skills.py"]
+    API --> Core["SkillRegistryService<br/>app/core/skill_registry.py"]
+    Core --> Artifact["FileSystemArtifactStore"]
+    Core --> Repo["SQLAlchemySkillRegistryRepository"]
+    Core --> Audit["SQLAlchemyAuditRecorder"]
+    Artifact --> FS["Immutable Filesystem Layout"]
+    Repo --> DB["PostgreSQL"]
+    Audit --> DB
+```
+
+Why this shape:
+- The service owns the transaction boundary between contract validation, artifact storage, metadata persistence, and audit emission. See [app/core/skill_registry.py](/Users/yonatan/Dev/Aptitude/aptitude-server/app/core/skill_registry.py).
+- The API remains registry-oriented. It returns immutable metadata and artifacts, but excludes resolver-owned solve, lock, and execution behavior. See [app/interface/api/skills.py](/Users/yonatan/Dev/Aptitude/aptitude-server/app/interface/api/skills.py) and [tests/unit/test_registry_api_boundary.py](/Users/yonatan/Dev/Aptitude/aptitude-server/tests/unit/test_registry_api_boundary.py).
+
+## Runtime Flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant A as Skills API
+    participant S as SkillRegistryService
+    participant F as Artifact Store
+    participant R as Registry Repository
+    participant U as Audit Recorder
+
+    C->>A: POST /skills/publish
+    A->>S: publish_version(manifest, artifact)
+    S->>F: store_immutable_artifact()
+    F-->>S: relative_path, size_bytes
+    S->>R: create_version()
+    R-->>S: StoredSkillVersion
+    S->>U: record_event(skill.version_published)
+    S-->>A: SkillVersionDetail
+    A-->>C: 201 Created
+```
 
 ## Design Notes
 
-- Duplicate publish is treated as a hard conflict (`409`) to keep immutability rules explicit ([duplicate guard in core](/Users/yonatan/Dev/aptitude-server/app/core/skill_registry.py), [409 mapping in API](/Users/yonatan/Dev/aptitude-server/app/interface/api/skills.py), [integration test](/Users/yonatan/Dev/aptitude-server/tests/integration/test_skill_registry_endpoints.py)).
-- The service verifies checksum on every version fetch to detect silent filesystem corruption early ([core integrity check](/Users/yonatan/Dev/aptitude-server/app/core/skill_registry.py), [integration corruption test](/Users/yonatan/Dev/aptitude-server/tests/integration/test_skill_registry_endpoints.py)).
-- Artifacts are written using exclusive file creation and version-specific immutable paths to prevent in-place mutation ([artifact store write mode + path layout](/Users/yonatan/Dev/aptitude-server/app/persistence/artifact_store.py)).
-- Relationship fields are present in milestone 02 manifests even before resolver logic, reducing migration churn for milestones 03 and 06 ([manifest schema](/Users/yonatan/Dev/aptitude-server/app/interface/api/skills.py), [manifest validation tests](/Users/yonatan/Dev/aptitude-server/tests/unit/test_skill_manifest.py)).
-- API write path is centralized through server endpoints and core service orchestration (`SkillRegistryService`) ([core service](/Users/yonatan/Dev/aptitude-server/app/core/skill_registry.py), [persistence adapter](/Users/yonatan/Dev/aptitude-server/app/persistence/skill_registry_repository.py), [composition wiring](/Users/yonatan/Dev/aptitude-server/app/main.py)).
+- Duplicate protection is layered. The service pre-checks `(skill_id, version)`, the filesystem adapter guards immutable paths, and the database enforces a unique constraint on `(skill_fk, version)`. See [app/core/skill_registry.py](/Users/yonatan/Dev/Aptitude/aptitude-server/app/core/skill_registry.py), [app/persistence/artifact_store.py](/Users/yonatan/Dev/Aptitude/aptitude-server/app/persistence/artifact_store.py), and [alembic/versions/0002_immutable_skill_registry.py](/Users/yonatan/Dev/Aptitude/aptitude-server/alembic/versions/0002_immutable_skill_registry.py).
+- Exact version fetches always recompute `sha256` over stored artifact bytes before returning a response, so corruption is detected on the read path rather than assumed away. See [app/core/skill_registry.py](/Users/yonatan/Dev/Aptitude/aptitude-server/app/core/skill_registry.py) and [tests/integration/test_skill_registry_endpoints.py](/Users/yonatan/Dev/Aptitude/aptitude-server/tests/integration/test_skill_registry_endpoints.py).
+- Provenance basics are currently represented by immutable manifest snapshots plus audit events, not a dedicated provenance table. See [app/persistence/artifact_store.py](/Users/yonatan/Dev/Aptitude/aptitude-server/app/persistence/artifact_store.py) and [app/persistence/models/audit_event.py](/Users/yonatan/Dev/Aptitude/aptitude-server/app/persistence/models/audit_event.py).
+- Version listing is deterministic by `published_at DESC, id DESC`, which keeps repeated reads stable for resolver-side lock and replay flows. See [app/persistence/skill_registry_repository.py](/Users/yonatan/Dev/Aptitude/aptitude-server/app/persistence/skill_registry_repository.py) and [tests/integration/test_skill_registry_endpoints.py](/Users/yonatan/Dev/Aptitude/aptitude-server/tests/integration/test_skill_registry_endpoints.py).
 
-## Idempotency and Immutable Modeling Learnings
+## Schema Reference
 
-- Immutable versioning and idempotency are related but distinct.
-- This milestone intentionally chooses strict immutability over idempotent replay for duplicate `skill_id+version` publishes ([duplicate handling in core service](/Users/yonatan/Dev/aptitude-server/app/core/skill_registry.py), [duplicate conflict test](/Users/yonatan/Dev/aptitude-server/tests/integration/test_skill_registry_endpoints.py)).
-- If idempotent replay is needed later, it should be implemented explicitly via idempotency keys or request fingerprints, not by silent overwrite behavior.
+Source: [0002_immutable_skill_registry.py](/Users/yonatan/Dev/Aptitude/aptitude-server/alembic/versions/0002_immutable_skill_registry.py).
+
+### `skills`
+
+| Field | Type | Nullable | Default / Constraint | Role |
+| --- | --- | --- | --- | --- |
+| `id` | `BIGINT` | No | Primary key, autoincrement | Surrogate key used by related version rows and indexes. |
+| `skill_id` | `TEXT` | No | Unique | Logical immutable skill name that clients address in API paths. |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | Captures when the logical skill root was first introduced. |
+
+### `skill_versions`
+
+| Field | Type | Nullable | Default / Constraint | Role |
+| --- | --- | --- | --- | --- |
+| `id` | `BIGINT` | No | Primary key, autoincrement | Stable identifier for one immutable published version. |
+| `skill_fk` | `BIGINT` | No | FK to `skills.id`, `ON DELETE CASCADE` | Connects version rows back to the logical skill root. |
+| `version` | `TEXT` | No | Unique with `skill_fk`, semver check | Stores the immutable version coordinate requested by clients. |
+| `manifest_json` | `JSONB` | No | Required | Persists the exact manifest contract served back to consumers. |
+| `artifact_rel_path` | `TEXT` | No | Required | Stores the immutable artifact path inside the filesystem artifact root. |
+| `artifact_size_bytes` | `BIGINT` | No | Required | Records the published artifact size for read responses and audits. |
+| `published_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | Supports deterministic list ordering and publication history. |
+
+### `skill_version_checksums`
+
+| Field | Type | Nullable | Default / Constraint | Role |
+| --- | --- | --- | --- | --- |
+| `id` | `BIGINT` | No | Primary key, autoincrement | Row identity for checksum metadata. |
+| `skill_version_fk` | `BIGINT` | No | FK to `skill_versions.id`, unique | Enforces exactly one checksum record per immutable version. |
+| `algorithm` | `VARCHAR(20)` | No | `algorithm = 'sha256'` | Pins the integrity algorithm used by publish and fetch paths. |
+| `digest` | `VARCHAR(64)` | No | `char_length = 64` | Stores the checksum returned to clients and used for read-time verification. |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | Records when checksum metadata was materialized. |
 
 ## Verification Notes
 
-- Unit tests for manifest validation, catalog core behavior, layering, and settings pass ([manifest tests](/Users/yonatan/Dev/aptitude-server/tests/unit/test_skill_manifest.py), [catalog service tests](/Users/yonatan/Dev/aptitude-server/tests/unit/test_skill_registry_service.py), [layering tests](/Users/yonatan/Dev/aptitude-server/tests/unit/test_layering_imports.py), [settings tests](/Users/yonatan/Dev/aptitude-server/tests/unit/test_settings.py)).
-- Integration tests for publish/fetch/list, duplicate conflict, and checksum mismatch are in place and require PostgreSQL availability ([endpoint integration tests](/Users/yonatan/Dev/aptitude-server/tests/integration/test_skill_registry_endpoints.py), [migration integration tests](/Users/yonatan/Dev/aptitude-server/tests/integration/test_migrations.py)).
-
-## Current Schema Reference (0002)
-
-Source migration: [0002_immutable_skill_registry.py](/Users/yonatan/Dev/aptitude-server/alembic/versions/0002_immutable_skill_registry.py).
-
-### `skills` (logical skill identity)
-
-| Field | Type | Nullable | Default / Constraint | Role |
-| --- | --- | --- | --- | --- |
-| `id` | `BigInteger` | No | Primary key, autoincrement | Internal surrogate key for joins. |
-| `skill_id` | `Text` | No | Unique | Stable external skill identifier shared by versions. |
-| `created_at` | `DateTime(timezone=True)` | No | `CURRENT_TIMESTAMP` | Creation timestamp of the logical skill root. |
-
-### `skill_versions` (immutable version metadata)
-
-| Field | Type | Nullable | Default / Constraint | Role |
-| --- | --- | --- | --- | --- |
-| `id` | `BigInteger` | No | Primary key, autoincrement | Internal row identifier for an immutable version. |
-| `skill_fk` | `BigInteger` | No | FK -> `skills.id` (`ON DELETE CASCADE`) | Links a version to its parent skill. |
-| `version` | `Text` | No | Unique with `skill_fk`; SemVer check constraint | Immutable version label (`skill_id + version` uniqueness boundary). |
-| `manifest_json` | `JSONB` | No | Required | Canonical manifest snapshot for this version. |
-| `artifact_rel_path` | `Text` | No | Required | Relative filesystem path to immutable artifact bytes. |
-| `artifact_size_bytes` | `BigInteger` | No | Required | Artifact size used for metadata and integrity context. |
-| `published_at` | `DateTime(timezone=True)` | No | `CURRENT_TIMESTAMP` | Publish timestamp for ordering/version history. |
-
-Indexes and table constraints:
-- `uq_skill_versions_skill_fk_version`: prevents duplicate `skill_id+version` pairs.
-- `ix_skill_versions_skill_fk_published_at_id`: supports deterministic listing by publish time/id.
-- `ix_skill_versions_skill_fk_version`: supports direct lookup by skill/version.
-
-### `skill_version_checksums` (integrity metadata)
-
-| Field | Type | Nullable | Default / Constraint | Role |
-| --- | --- | --- | --- | --- |
-| `id` | `BigInteger` | No | Primary key, autoincrement | Internal checksum row identifier. |
-| `skill_version_fk` | `BigInteger` | No | FK -> `skill_versions.id` (`ON DELETE CASCADE`), unique | One-to-one checksum record per immutable version. |
-| `algorithm` | `String(20)` | No | Check: must equal `sha256` | Declares checksum algorithm. |
-| `digest` | `String(64)` | No | Check: length must be `64` | Hex-encoded SHA-256 digest used for read-time integrity verification. |
-| `created_at` | `DateTime(timezone=True)` | No | `CURRENT_TIMESTAMP` | Checksum record creation timestamp. |
+- Unit coverage validates manifest parsing and core registry behavior in [tests/unit/test_skill_manifest.py](/Users/yonatan/Dev/Aptitude/aptitude-server/tests/unit/test_skill_manifest.py) and [tests/unit/test_skill_registry_service.py](/Users/yonatan/Dev/Aptitude/aptitude-server/tests/unit/test_skill_registry_service.py).
+- Integration coverage validates publish, fetch, list, duplicate rejection, and checksum mismatch handling in [tests/integration/test_skill_registry_endpoints.py](/Users/yonatan/Dev/Aptitude/aptitude-server/tests/integration/test_skill_registry_endpoints.py).
+- Migration lifecycle is covered in [tests/integration/test_migrations.py](/Users/yonatan/Dev/Aptitude/aptitude-server/tests/integration/test_migrations.py).
+- Registry-only boundary enforcement remains covered by [tests/unit/test_registry_api_boundary.py](/Users/yonatan/Dev/Aptitude/aptitude-server/tests/unit/test_registry_api_boundary.py).

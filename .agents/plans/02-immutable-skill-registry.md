@@ -14,19 +14,20 @@ Support publish and fetch of `skill@version` with strict immutability and integr
 - Persist versioned skill records in DB.
 - Store artifact files in immutable path layout.
 - Compute and store checksums.
-- Expose publish/fetch/list endpoints.
+- Expose publish/fetch/list endpoints as immutable retrieval primitives for resolver-owned search, selection, and solve flows.
 - Keep all writes API-mediated; no direct client writes to server persistence.
-- Exclude runtime prompt orchestration and plugin execution (resolver scope).
+- Exclude runtime prompt orchestration, reranking, final tool selection, lock generation, and plugin execution (resolver scope).
 
 ## Architecture Impact
-- Implements core asset catalog responsibilities.
+- Implements core artifact catalog responsibilities.
 - Connects interface, persistence, and audit layers for skill lifecycle events.
+- Establishes immutable artifact semantics required by resolver lock reproducibility.
 
 ## Deliverables
 - Endpoint: `POST /skills/publish` (v1 path alias allowed).
 - Endpoint: `GET /skills/{id}/{version}` (v1 path alias allowed).
 - Endpoint: `GET /skills/{id}` for version listing (v1 path alias allowed).
-- Tables for skills, versions, and checksums.
+- Tables for skills, versions, checksums, and provenance basics.
 - Immutable artifact storage convention.
 - Audit event emission for publish and read.
 - Learning note on idempotency and immutable data modeling.
@@ -37,6 +38,7 @@ Support publish and fetch of `skill@version` with strict immutability and integr
 - Checksum mismatch is detected and reported.
 - Published artifacts are never modified in place.
 - Server write path is 100% API-enforced.
+- Exact version reads remain stable and reusable by resolver lock/replay flows.
 
 ## Test Plan
 - Integration test: publish three versions and fetch each.
