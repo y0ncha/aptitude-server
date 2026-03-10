@@ -10,10 +10,11 @@ mapping for health and skill catalog operations.
 ## Key Files
 
 - `health.py`: liveness/readiness endpoints (`/healthz`, `/readyz`).
-- `skills.py`: publish/fetch/list immutable skill version endpoints.
+- `skills.py`: publish/fetch/list immutable skill version endpoints, including
+  authored dependency declarations with exact versions or validated version constraints.
 - `__init__.py`: package marker.
 
 ## Notes
 
 Business decisions should stay in core services; routers should focus on API
-contract validation and error translation.
+contract validation, dependency declaration syntax checks, and error translation.

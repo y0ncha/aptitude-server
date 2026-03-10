@@ -1,0 +1,8 @@
+$kind: collection
+
+name: Negative
+description: |-
+  Deterministic failure cases for the Aptitude Skills API.
+
+  These requests avoid stateful dependencies so they can be run independently
+  and still assert stable validation or not-found responses.

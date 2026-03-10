@@ -1,7 +1,7 @@
 # Plan 08 — Operability and Release Readiness
 
 ## Goal
-Harden the system for reliable operation, auditing, and repeatable deployment.
+Harden the repository service for reliable operation, auditing, and repeatable deployment.
 
 ## Stack Alignment
 - Runtime: Python 3.12+
@@ -10,35 +10,37 @@ Harden the system for reliable operation, auditing, and repeatable deployment.
 - Quality gates: pytest, ruff, mypy, coverage thresholds
 
 ## Scope
-- Complete audit event matrix across publish, resolve, policy, and evaluation flows.
+- Complete audit event matrix across publish, fetch, search, lifecycle, and evaluation flows.
 - Add structured logs and correlation IDs.
 - Add metrics endpoint and baseline instrumentation.
 - Add Docker packaging and CI quality gates.
+- Add SLO instrumentation aligned to `prd.md` for exact-read latency, discovery search latency, and fetch reliability.
 
 ## Architecture Impact
 - Strengthens observability and audit layer.
 - Adds deployment and quality infrastructure without changing domain invariants.
+- Prepares server contracts for independent resolver release trains.
 
 ## Deliverables
 - Structured logging conventions and correlation ID propagation.
 - Metrics endpoint and core counters and timers.
 - Dockerfile and local run instructions.
 - CI pipeline stages for unit, integration, lint, type-check, and coverage threshold.
-- Operational runbook for replaying resolution decisions.
+- Operational runbook for publish/read/governance incident response.
 - Learning note on reliability and observability tradeoffs.
 
 ## Acceptance Criteria
-- End-to-end flow is observable with logs, metrics, and audit trace.
+- End-to-end repository flow is observable with logs, metrics, and audit trace.
 - CI blocks merges on failing quality gates.
 - Containerized service starts and runs migrations on startup path.
-- Resolution debugging is reproducible from `ResolutionReport` and audit records.
-- 100% of publish/deprecate/archive/resolve actions emit auditable events.
-- Publish pipeline success SLO instrumentation is present with monthly target >= 99.5%.
-- Resolve latency SLO instrumentation is present for p95 <= 250 ms at target graph size.
+- 100% of publish/deprecate/archive actions emit auditable events.
+- Read SLO instrumentation is present for `GET /skills/{id}/{version}` p95 <= 150 ms.
+- Search latency instrumentation is present for `GET /skills/search` so agent workflows can treat discovery as an interactive primitive.
+- Artifact fetch reliability instrumentation is present for monthly target >= 99.9%.
 
 ## Test Plan
-- End-to-end integration test for publish -> resolve -> evaluate -> resolve.
+- End-to-end integration test for publish -> fetch -> search -> lifecycle update.
 - `pytest` suite in CI with coverage and deterministic integration checks.
 - Smoke test in containerized environment.
 - Audit completeness test against the event matrix.
-- Performance and load test that validates p95 resolve latency target under representative bundle complexity.
+- Performance and load test validating exact-read latency and discovery search latency targets.

@@ -6,74 +6,131 @@
 ![Issues](https://img.shields.io/github/issues/y0ncha/aptitude-server)
 ![Status](https://img.shields.io/badge/status-active--development-blue)
 
-Aptitude is a versioned, dependency-aware skill server for AI systems.  
-It manages skills as atomic, immutable, and composable capability units rather than ad hoc prompt fragments.
+`aptitude-server` is the registry service in the Aptitude ecosystem.
+It stores immutable skill artifacts and versioned metadata so clients can
+publish skills, fetch exact versions, and rely on registry-backed discovery
+instead of crawling the full catalog.
 
-The server provides:
+## What This Service Owns
 
-- Deterministic versioning
-- Explicit dependency modeling
-- Structured metadata enrichment
-- Evaluation-based ranking
-- Secure skill supply chain governance
+- Immutable `skill_id@version` publication
+- Exact version fetches with checksum-backed integrity validation
+- Version metadata and direct dependency declarations
+- Registry metadata that powers discovery APIs
+- Publish/read auditability and lifecycle governance
 
----
+## What It Does Not Own
 
-## Design Principles
+`aptitude-server` is not the resolver runtime.
+Prompt interpretation, reranking, dependency solving, lock generation, and
+execution planning belong to the client-side resolver.
 
-- Skills are immutable and independently versioned
-- All relationships are explicit and typed
-- Resolution is centralized and deterministic
-- Metadata drives optimization, not heuristics
-- The server is execution-agnostic
-- Reproducibility is guaranteed by version + server state
+Use this rule consistently:
 
----
+- Server owns data-local work
+- Resolver owns decision-local work
 
-## Architecture (High-Level)
+In practice, that means the server behaves more like a package registry, while
+the resolver behaves more like the package manager and runtime planner.
 
-Client / Loader / SDK  
-→ Server Interface  
-→ Core Domain (Catalog + Resolver + Policy)  
-→ Intelligence Layer (Graph + Metadata)  
-→ Persistence (Artifacts + Index + Graph Store)
+## How It Fits Together
 
----
+```text
+User / Agent
+  -> Resolver / Client
+  -> aptitude-server
+  -> PostgreSQL + artifact storage + audit log
+```
 
-## Current Status
+The server keeps immutable records and exposes stable registry APIs.
+The resolver uses those APIs to retrieve candidates, choose versions, solve
+dependencies, and build reproducible lock output.
 
-The project is under active development and currently in planning-to-implementation transition.
+## Current Scope
 
-Roadmap and implementation plan: [`docs/overview.md`](docs/overview.md) (Planning + Tech Stack sections).
+The current implementation is intentionally registry-first.
 
----
+Implemented now:
 
-## Planned Stack
+- FastAPI service with health and readiness endpoints
+- Immutable publish API for skill manifest + artifact
+- Exact fetch by `skill_id` and `version`
+- Version listing per skill
+- Checksum verification on artifact reads
+- PostgreSQL-backed metadata persistence and filesystem artifact storage
+- Direct dependency declaration validation and retrieval
 
-- API: FastAPI + Pydantic v2
-- Runtime: Python 3.12+
-- Data: PostgreSQL (default from first milestone)
-- ORM/migrations: SQLAlchemy 2.0 + Alembic
-- Jobs: APScheduler (MVP), Celery + Redis (scale)
-- Quality: pytest, ruff, mypy
+Planned next:
 
----
+- Search and candidate retrieval APIs
+- Richer governance and lifecycle controls
+- Discovery metadata and evaluation signals
 
-## Getting Started (once service scaffold is added)
+## Current API
+
+Available endpoints today:
+
+- `GET /healthz`
+- `GET /readyz`
+- `POST /skills/publish`
+- `GET /skills/{skill_id}/{version}`
+- `GET /skills/{skill_id}`
+
+Planned but not yet implemented:
+
+- `GET /skills/search`
+
+When the service is running locally, OpenAPI docs are available at
+`http://127.0.0.1:8000/docs`.
+
+## Tech At A Glance
+
+- Python 3.12+
+- FastAPI + Pydantic v2
+- PostgreSQL + SQLAlchemy + Alembic
+- Filesystem artifact storage
+- Ruff, pytest, mypy
+
+## Local Development
 
 ### Requirements
 
 - Python 3.12+
-- PostgreSQL 15+
-- `uv` (recommended) or `pip`
-- Docker (optional)
+- `uv`
+- Docker (recommended for local PostgreSQL)
 
-### Run locally (planned)
+### Start the database
+
+```bash
+make db-up
+```
+
+This starts PostgreSQL on `localhost:5432` with the default database
+`aptitude`.
+
+### Install dependencies and run the server
 
 ```bash
 uv venv
 source .venv/bin/activate
-uv pip install fastapi "uvicorn[standard]" sqlalchemy alembic pydantic-settings
+uv sync --extra dev
 export DATABASE_URL="postgresql+psycopg://postgres:postgres@localhost:5432/aptitude"
-python main.py
+make migrate-up
+make run
 ```
+
+The app runs on `http://127.0.0.1:8000`.
+
+### Useful commands
+
+```bash
+make lint
+make test
+make typecheck
+make db-down
+```
+
+## More Context
+
+- Product and architecture overview: [`docs/overview.md`](docs/overview.md)
+- Server vs client boundary: [`docs/scope.md`](docs/scope.md)

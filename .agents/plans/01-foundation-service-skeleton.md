@@ -1,7 +1,7 @@
 # Plan 01 — Foundation Service Skeleton
 
 ## Goal
-Establish a runnable Python service (FastAPI) with clear layer boundaries, configuration, logging, and migration bootstrap.
+Establish a runnable Python service (FastAPI) with clear layer boundaries, configuration, logging, and migration bootstrap for a registry-authoritative, execution-agnostic server.
 
 ## Stack Alignment
 - Runtime: Python 3.12+
@@ -14,10 +14,12 @@ Establish a runnable Python service (FastAPI) with clear layer boundaries, confi
 - Add config loading and startup wiring.
 - Add PostgreSQL connection and migration execution.
 - Add health and readiness endpoints.
+- Establish boundary guardrail: no runtime dependency-solving endpoints in server bootstrap.
 
 ## Architecture Impact
 - Introduces the server interface boundary and dependency direction.
 - Sets persistence and observability foundations without domain behavior.
+- Protects long-term separation between repository and resolver responsibilities.
 
 ## Deliverables
 - Python service skeleton (`app/main.py` + `app/...` layout).
@@ -32,6 +34,7 @@ Establish a runnable Python service (FastAPI) with clear layer boundaries, confi
 - PostgreSQL migrations run successfully on a clean setup.
 - Health endpoints return expected status.
 - `pytest` passes.
+- Architecture checks fail if new server routes include resolver-owned semantics (`/resolve`, lock execution planning).
 
 ## Test Plan
 - Unit tests for config validation.

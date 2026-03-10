@@ -1,0 +1,82 @@
+# Test health endpoints
+
+GET http://127.0.0.1:8000/healthz
+Accept: application/json
+
+> {%
+client.test("healthz returns 200", function () {
+  client.assert(response.status === 200, "Expected 200, got " + response.status);
+});
+%}
+
+###
+
+GET http://127.0.0.1:8000/readyz
+Accept: application/json
+
+> {%
+client.test("readyz returns 200", function () {
+  client.assert(response.status === 200, "Expected 200, got " + response.status);
+});
+%}
+
+###
+
+@host = http://127.0.0.1:8000
+@skill_id = sanity.skill.stub.{{$uuid}}
+@version = 1.0.0
+
+### Publish a skill version with the shared sanity artifact stub
+# Run the server first with: make run
+POST {{host}}/skills/publish
+Accept: application/json
+Content-Type: multipart/form-data; boundary=SkillBoundary
+
+--SkillBoundary
+Content-Disposition: form-data; name="manifest"
+Content-Type: application/json
+
+{
+  "schema_version": "1.0",
+  "skill_id": "{{skill_id}}",
+  "version": "{{version}}",
+  "name": "Sanity Skill Stub",
+  "description": "Example publish request that reuses postman/assets/sanity-artifact.md as the artifact payload.",
+  "tags": ["sanity", "stub", "demo"],
+  "depends_on": [],
+  "extends": [],
+  "conflicts_with": [],
+  "overlaps_with": []
+}
+--SkillBoundary
+Content-Disposition: form-data; name="artifact"; filename="sanity-artifact.md"
+Content-Type: text/markdown
+
+< ../postman/assets/sanity-artifact.md
+--SkillBoundary--
+
+> {%
+client.test("publish returns 201", function () {
+  client.assert(response.status === 201, "Expected 201, got " + response.status + ": " + response.body);
+});
+%}
+
+### Fetch the published version
+GET {{host}}/skills/{{skill_id}}/{{version}}
+Accept: application/json
+
+> {%
+client.test("fetch returns 200", function () {
+  client.assert(response.status === 200, "Expected 200, got " + response.status + ": " + response.body);
+});
+%}
+
+### List all versions for the skill
+GET {{host}}/skills/{{skill_id}}
+Accept: application/json
+
+> {%
+client.test("list returns 200", function () {
+  client.assert(response.status === 200, "Expected 200, got " + response.status + ": " + response.body);
+});
+%}

@@ -1,0 +1,120 @@
+# ============================================================
+# Aptitude Skills API — Collection Definition
+# ============================================================
+
+$kind: collection
+
+name: Aptitude Skills API
+description: |-
+  Collection for validating the Aptitude Skills API with two focused flows:
+
+    - Sanity: confirms the happy-path health, publish, fetch, and list behaviour
+    - Negative: confirms deterministic validation and not-found failures
+
+variables:
+  baseUrl: http://localhost:8000
+  artifactFilePath: /Users/yonatan/Dev/Aptitude/aptitude-server/postman/assets/sanity-artifact.md
+  runId: ""
+  sanity_skill_id: ""
+  sanity_version_1: 1.0.0
+  sanity_version_2: 1.1.0
+  sanity_manifest: ""
+  published_skill_id: ""
+  published_version_latest: ""
+  negative_invalid_manifest: ""
+  negative_missing_skill_id: postman.missing.skill
+  negative_missing_version: 9.9.9
+  invalid_skill_id: invalid skill id
+  invalid_version: not-a-semver
+
+scripts:
+  - type: http:beforeRequest
+    language: text/javascript
+    code: |-
+      const requestName = pm.info.requestName || '';
+      const sanityRequestNames = new Set([
+        'Healthz',
+        'Readyz',
+        'Publish Skill v1',
+        'Publish Skill v2',
+        'Fetch Published Skill',
+        'List Published Skill Versions',
+      ]);
+
+      const buildManifest = ({ skillId, version }) =>
+        JSON.stringify(
+          {
+            schema_version: '1.0',
+            skill_id: skillId,
+            version,
+            name: 'Postman Sanity Skill',
+            description: 'Collection-generated manifest for Aptitude API checks',
+            tags: ['postman', 'sanity'],
+            depends_on: [],
+            extends: [],
+            conflicts_with: [],
+            overlaps_with: [],
+          },
+          null,
+          2,
+        );
+
+      const ensureSanityIdentity = (forceReset = false) => {
+        let runId = pm.collectionVariables.get('runId');
+        let skillId = pm.collectionVariables.get('sanity_skill_id');
+
+        if (forceReset || !runId || !skillId) {
+          runId = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+          skillId = `postman.sanity.${runId}`;
+          pm.collectionVariables.set('runId', runId);
+          pm.collectionVariables.set('sanity_skill_id', skillId);
+          pm.collectionVariables.set('published_skill_id', skillId);
+          pm.collectionVariables.set(
+            'published_version_latest',
+            pm.collectionVariables.get('sanity_version_1'),
+          );
+        }
+
+        return skillId;
+      };
+
+      if (sanityRequestNames.has(requestName)) {
+        ensureSanityIdentity(requestName === 'Publish Skill v1');
+      }
+
+      if (requestName === 'Publish Skill v1') {
+        pm.collectionVariables.set(
+          'sanity_manifest',
+          buildManifest({
+            skillId: pm.collectionVariables.get('sanity_skill_id'),
+            version: pm.collectionVariables.get('sanity_version_1'),
+          }),
+        );
+      }
+
+      if (requestName === 'Publish Skill v2') {
+        pm.collectionVariables.set(
+          'sanity_manifest',
+          buildManifest({
+            skillId: pm.collectionVariables.get('sanity_skill_id'),
+            version: pm.collectionVariables.get('sanity_version_2'),
+          }),
+        );
+      }
+
+      if (requestName === 'Publish Invalid Manifest') {
+        pm.collectionVariables.set(
+          'negative_invalid_manifest',
+          JSON.stringify(
+            {
+              schema_version: '1.0',
+              skill_id: `postman.invalid.${Date.now()}`,
+              version: '1.0.0',
+              name: 'Invalid Manifest',
+              depends_on: [{ skill_id: 'missing.version.selector' }],
+            },
+            null,
+            2,
+          ),
+        );
+      }

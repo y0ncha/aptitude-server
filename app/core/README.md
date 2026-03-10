@@ -9,11 +9,11 @@ that infrastructure layers implement.
 
 ## Key Files
 
-- `skill_registry.py`: immutable publish/fetch/list service + domain errors/models.
-- `ports.py`: protocol contracts (`SkillRegistryPort`, `ArtifactStorePort`, `AuditPort`).
+- `skill_registry.py`: immutable publish/fetch/list service + domain errors/models,
+  preserving authored dependency declaration contracts.
+- `ports.py`: protocol contracts (`SkillRegistryPort`, `ArtifactStorePort`, `AuditPort`, `DatabaseReadinessPort`).
 - `dependencies.py`: FastAPI dependency providers and typed aliases
-  (`SettingsDep`, `ReadinessServiceDep`, `SkillRegistryServiceDep`) that read
-  process-scoped services from `request.app.state`.
+  (`SettingsDep`, `ReadinessServiceDep`, `SkillRegistryServiceDep`) that read process-scoped services from `request.app.state`.
 - `readiness.py`: readiness domain service and report models.
 - `settings.py`: typed environment configuration.
 - `logging.py`: centralized logging config for application and `uvicorn.*` loggers.
@@ -22,6 +22,8 @@ that infrastructure layers implement.
 
 - Core must not import persistence implementations directly.
 - Persistence and audit adapters implement core-defined protocols.
+- Core publishes immutable manifest metadata but does not solve dependency
+  graphs, generate locks, or build execution plans.
 - Logging configuration is defined once in core and reused by runtime entrypoints.
 - Dependency providers in `dependencies.py` assume startup has initialized
   `app.state.readiness_service` and `app.state.skill_registry_service`.

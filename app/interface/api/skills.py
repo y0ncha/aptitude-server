@@ -1,14 +1,35 @@
-"""Immutable skill catalog API endpoints."""
+"""HTTP contract for immutable skill catalog operations.
+
+This router is intentionally thin. It is responsible for:
+
+- validating incoming request payloads with FastAPI and Pydantic
+- preserving authored manifest metadata when translating it to core models
+- converting domain errors from ``SkillRegistryService`` into a stable JSON
+  error envelope
+
+Routes exposed by this module:
+
+- ``POST /skills/publish`` publishes a new immutable ``skill_id@version``
+- ``GET /skills/{skill_id}/{version}`` fetches one immutable version and its
+  artifact as base64 text
+- ``GET /skills/{skill_id}`` lists all published versions for a skill in
+  deterministic newest-first order
+
+File overview:
+- Defines the public HTTP schemas for publishing, fetching, and listing skills.
+- Keeps business logic delegated to the core registry service.
+- Normalizes validation and domain failures into stable API responses.
+"""
 
 from __future__ import annotations
 
 import base64
-from datetime import datetime
+import json
 from typing import Annotated, Any
 
 from fastapi import APIRouter, File, Form, Path, UploadFile, status
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import ValidationError
 
 from app.core.dependencies import SkillRegistryServiceDep
 from app.core.skill_registry import (
@@ -16,112 +37,101 @@ from app.core.skill_registry import (
     DuplicateSkillVersionError,
     IntegrityCheckFailedError,
     InvalidManifestError,
+    SkillDependencyRef,
     SkillManifestData,
     SkillRelationshipRef,
     SkillVersionDetail,
     SkillVersionNotFoundError,
 )
-
-SEMVER_PATTERN = (
-    r"^(0|[1-9]\d*)\."
-    r"(0|[1-9]\d*)\."
-    r"(0|[1-9]\d*)"
-    r"(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?"
-    r"(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$"
+from app.interface.dto.skills import (
+    SEMVER_PATTERN,
+    SKILL_ID_PATTERN,
+    ArtifactMetadataResponse,
+    ChecksumResponse,
+    DependencyDeclaration,
+    ErrorBody,
+    ErrorEnvelope,
+    RelationshipRef,
+    SkillManifest,
+    SkillVersionDetailResponse,
+    SkillVersionFetchResponse,
+    SkillVersionListResponse,
+    SkillVersionSummaryResponse,
 )
-SKILL_ID_PATTERN = r"^[A-Za-z0-9](?:[A-Za-z0-9._-]{0,127})$"
 
+# A single router groups all skill-registry endpoints under one tag so the API
+# surface is discoverable in generated OpenAPI docs.
 router = APIRouter(tags=["skills"])
 
 
-class RelationshipRef(BaseModel):
-    """Typed manifest reference to another immutable skill version."""
+# ===== OpenAPI schemas and shared response metadata =====#
 
-    skill_id: str = Field(min_length=1, max_length=128, pattern=SKILL_ID_PATTERN)
-    version: str = Field(pattern=SEMVER_PATTERN)
+# FastAPI expects route-level OpenAPI response metadata to allow either integer
+# HTTP status codes or string keys such as "default".
+OpenAPIResponses = dict[int | str, dict[str, Any]]
 
-    model_config = ConfigDict(extra="forbid")
+# Shared OpenAPI error documentation for the publish endpoint.
+PUBLISH_ERROR_RESPONSES: OpenAPIResponses = {
+    status.HTTP_409_CONFLICT: {
+        "model": ErrorEnvelope,
+        "description": "The requested immutable `skill_id@version` already exists.",
+    },
+    status.HTTP_422_UNPROCESSABLE_CONTENT: {
+        "model": ErrorEnvelope,
+        "description": "The manifest JSON is malformed or violates the manifest contract.",
+    },
+    status.HTTP_500_INTERNAL_SERVER_ERROR: {
+        "model": ErrorEnvelope,
+        "description": "Artifact persistence failed while publishing the version.",
+    },
+}
 
-
-class SkillManifest(BaseModel):
-    """Validated immutable skill manifest contract."""
-
-    schema_version: str = Field(default="1.0", min_length=1, max_length=20)
-    skill_id: str = Field(min_length=1, max_length=128, pattern=SKILL_ID_PATTERN)
-    version: str = Field(pattern=SEMVER_PATTERN)
-    name: str = Field(min_length=1, max_length=200)
-    description: str | None = None
-    tags: list[str] = Field(default_factory=list)
-    depends_on: list[RelationshipRef] | None = None
-    extends: list[RelationshipRef] | None = None
-    conflicts_with: list[RelationshipRef] | None = None
-    overlaps_with: list[RelationshipRef] | None = None
-
-    model_config = ConfigDict(extra="forbid")
-
-
-class ErrorBody(BaseModel):
-    """Error detail object for API error envelope."""
-
-    code: str
-    message: str
-    details: dict[str, Any] | None = None
-
-
-class ErrorEnvelope(BaseModel):
-    """Standardized error envelope for milestone 02 endpoints."""
-
-    error: ErrorBody
-
-
-class ChecksumResponse(BaseModel):
-    algorithm: str
-    digest: str
-
-
-class ArtifactMetadataResponse(BaseModel):
-    relative_path: str
-    size_bytes: int
-
-
-class SkillVersionDetailResponse(BaseModel):
-    skill_id: str
-    version: str
-    manifest: SkillManifest
-    checksum: ChecksumResponse
-    artifact_metadata: ArtifactMetadataResponse
-    published_at: datetime
-
-
-class SkillVersionFetchResponse(SkillVersionDetailResponse):
-    artifact_base64: str
-
-
-class SkillVersionSummaryResponse(BaseModel):
-    skill_id: str
-    version: str
-    manifest: SkillManifest
-    checksum: ChecksumResponse
-    artifact_metadata: ArtifactMetadataResponse
-    published_at: datetime
-
-
-class SkillVersionListResponse(BaseModel):
-    skill_id: str
-    versions: list[SkillVersionSummaryResponse]
+# Shared OpenAPI error documentation for the fetch endpoint.
+FETCH_ERROR_RESPONSES: OpenAPIResponses = {
+    status.HTTP_404_NOT_FOUND: {
+        "model": ErrorEnvelope,
+        "description": "The requested immutable `skill_id@version` does not exist.",
+    },
+    status.HTTP_500_INTERNAL_SERVER_ERROR: {
+        "model": ErrorEnvelope,
+        "description": "Artifact retrieval or integrity verification failed.",
+    },
+}
 
 
 @router.post(
     "/skills/publish",
+    summary="Publish an immutable skill version",
+    description=(
+        "Accept multipart form data containing a JSON `manifest` string and a binary "
+        "`artifact` upload. The manifest is validated at the API boundary, converted "
+        "to core domain models, and persisted only if the same `skill_id@version` "
+        "does not already exist."
+    ),
     response_model=SkillVersionDetailResponse,
+    response_model_exclude_unset=True,
     status_code=status.HTTP_201_CREATED,
+    responses=PUBLISH_ERROR_RESPONSES,
 )
 async def publish_skill_version(
-    manifest: Annotated[str, Form()],
-    artifact: Annotated[UploadFile, File()],
+    manifest: Annotated[
+        str,
+        Form(description="Manifest JSON string describing the immutable skill version."),
+    ],
+    artifact: Annotated[
+        UploadFile,
+        File(description="Binary artifact associated with the published version."),
+    ],
     registry_service: SkillRegistryServiceDep,
 ) -> SkillVersionDetailResponse | JSONResponse:
-    """Publish immutable `skill@version` metadata and artifact."""
+    """Publish immutable `skill@version` metadata and artifact.
+
+    The endpoint itself stays intentionally small:
+    1. FastAPI parses the multipart request.
+    2. The helper validates and converts the manifest.
+    3. The core registry service performs the actual publish.
+    4. Domain exceptions are mapped to stable HTTP error envelopes.
+    """
     return await _publish_from_payload(
         manifest=manifest,
         artifact=artifact,
@@ -135,29 +145,43 @@ async def _publish_from_payload(
     artifact: UploadFile,
     registry_service: SkillRegistryServiceDep,
 ) -> SkillVersionDetailResponse | JSONResponse:
-    """Validate publish payload, enforce immutability, and persist the version."""
+    """Validate publish payload, enforce immutability, and persist the version.
+
+    This helper centralizes publish flow so the route remains declarative and the
+    behavior is easy to test in isolation.
+    """
     try:
+        # Parse the JSON string from multipart form data into the public API model.
         parsed_manifest = _parse_manifest(manifest)
+
+        # Read the uploaded artifact into memory before passing it to the core service.
         artifact_bytes = await artifact.read()
+
+        # Delegate persistence and immutability checks to the service layer.
         stored = registry_service.publish_version(
             manifest=_to_manifest_data(parsed_manifest),
             artifact_bytes=artifact_bytes,
         )
+
+        # Convert the service-layer projection back into the HTTP response schema.
         return _to_detail_response(stored=stored)
     except ValidationError as exc:
+        # Pydantic validation failure at the API boundary.
         return _error_response(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             code="INVALID_MANIFEST",
             message="Manifest validation failed.",
-            details={"errors": exc.errors()},
+            details={"errors": _validation_errors(exc)},
         )
     except InvalidManifestError as exc:
+        # Domain-level manifest rejection from the core service.
         return _error_response(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             code="INVALID_MANIFEST",
             message=str(exc),
         )
     except DuplicateSkillVersionError as exc:
+        # Immutable publish conflict: the exact skill_id/version already exists.
         return _error_response(
             status_code=status.HTTP_409_CONFLICT,
             code="DUPLICATE_SKILL_VERSION",
@@ -165,6 +189,7 @@ async def _publish_from_payload(
             details={"skill_id": exc.skill_id, "version": exc.version},
         )
     except ArtifactStorageFailureError as exc:
+        # Persistence/storage failure while writing the artifact.
         return _error_response(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             code="ARTIFACT_STORAGE_FAILURE",
@@ -172,13 +197,40 @@ async def _publish_from_payload(
         )
 
 
-@router.get("/skills/{skill_id}/{version}", response_model=SkillVersionFetchResponse)
+@router.get(
+    "/skills/{skill_id}/{version}",
+    summary="Fetch one immutable skill version",
+    description=(
+        "Return the stored manifest, artifact metadata, checksum, and the artifact "
+        "itself as a base64-encoded string. The core service verifies the artifact "
+        "checksum on every read and fails the request if integrity validation fails."
+    ),
+    response_model=SkillVersionFetchResponse,
+    response_model_exclude_unset=True,
+    responses=FETCH_ERROR_RESPONSES,
+)
 def get_skill_version(
-    skill_id: Annotated[str, Path(pattern=SKILL_ID_PATTERN)],
-    version: Annotated[str, Path(pattern=SEMVER_PATTERN)],
+    skill_id: Annotated[
+        str,
+        Path(
+            pattern=SKILL_ID_PATTERN,
+            description="Stable identifier of the skill to fetch.",
+        ),
+    ],
+    version: Annotated[
+        str,
+        Path(
+            pattern=SEMVER_PATTERN,
+            description="Exact immutable semantic version to fetch.",
+        ),
+    ],
     registry_service: SkillRegistryServiceDep,
 ) -> SkillVersionFetchResponse | JSONResponse:
-    """Fetch immutable skill version and base64 encoded artifact."""
+    """Fetch immutable skill version and base64 encoded artifact.
+
+    Path validation guarantees that malformed identifiers or versions are
+    rejected before the request reaches the service layer.
+    """
     return _fetch_skill_version(
         skill_id=skill_id,
         version=version,
@@ -192,7 +244,12 @@ def _fetch_skill_version(
     version: str,
     registry_service: SkillRegistryServiceDep,
 ) -> SkillVersionFetchResponse | JSONResponse:
-    """Fetch and verify immutable version payload."""
+    """Fetch and verify immutable version payload.
+
+    On success, the response includes both metadata and the base64-encoded
+    artifact bytes. On failure, domain/storage errors are normalized into the
+    router's standard error envelope.
+    """
     try:
         stored = registry_service.get_version(skill_id=skill_id, version=version)
         return _to_fetch_response(stored=stored)
@@ -204,6 +261,7 @@ def _fetch_skill_version(
             details={"skill_id": exc.skill_id, "version": exc.version},
         )
     except IntegrityCheckFailedError as exc:
+        # Raised when the stored artifact no longer matches its recorded checksum.
         return _error_response(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             code="INTEGRITY_CHECK_FAILED",
@@ -218,9 +276,24 @@ def _fetch_skill_version(
         )
 
 
-@router.get("/skills/{skill_id}", response_model=SkillVersionListResponse)
+@router.get(
+    "/skills/{skill_id}",
+    summary="List published versions for a skill",
+    description=(
+        "Return every published immutable version for `skill_id`. Results are "
+        "deterministic and ordered newest-first by publication timestamp."
+    ),
+    response_model=SkillVersionListResponse,
+    response_model_exclude_unset=True,
+)
 def list_skill_versions(
-    skill_id: Annotated[str, Path(pattern=SKILL_ID_PATTERN)],
+    skill_id: Annotated[
+        str,
+        Path(
+            pattern=SKILL_ID_PATTERN,
+            description="Stable identifier of the skill whose versions should be listed.",
+        ),
+    ],
     registry_service: SkillRegistryServiceDep,
 ) -> SkillVersionListResponse:
     """List immutable versions for a skill in deterministic order."""
@@ -232,7 +305,11 @@ def _list_skill_versions(
     skill_id: str,
     registry_service: SkillRegistryServiceDep,
 ) -> SkillVersionListResponse:
-    """List immutable versions for a skill in deterministic order."""
+    """List immutable versions for a skill in deterministic order.
+
+    The core service supplies the ordering guarantee. This helper only projects
+    domain objects into the public response schema.
+    """
     versions = registry_service.list_versions(skill_id=skill_id)
     return SkillVersionListResponse(
         skill_id=skill_id,
@@ -240,6 +317,8 @@ def _list_skill_versions(
             SkillVersionSummaryResponse(
                 skill_id=item.skill_id,
                 version=item.version,
+                # Re-validate stored manifest JSON through the public API schema so
+                # the HTTP contract stays consistent on read.
                 manifest=SkillManifest.model_validate(item.manifest_json),
                 checksum=ChecksumResponse(
                     algorithm=item.checksum.algorithm,
@@ -257,10 +336,36 @@ def _list_skill_versions(
 
 
 def _parse_manifest(raw_manifest: str) -> SkillManifest:
+    """Parse the JSON manifest form field into the public API manifest schema.
+
+    The publish endpoint accepts the manifest as a multipart text field rather
+    than a standalone JSON request body, so parsing happens explicitly here.
+    """
     return SkillManifest.model_validate_json(raw_manifest)
 
 
+def _validation_errors(exc: ValidationError) -> list[dict[str, Any]]:
+    """Return JSON-safe Pydantic validation errors for the public error envelope.
+
+    ``ValidationError.errors()`` may include raw exception instances in
+    ``ctx.error`` for custom validators, which breaks JSON serialization.
+    Pydantic's JSON serializer already normalizes those values to strings.
+    """
+    return json.loads(exc.json())
+
+
 def _to_manifest_data(manifest: SkillManifest) -> SkillManifestData:
+    """Translate validated API models into immutable core manifest data.
+
+    `raw_manifest_json` preserves the authored payload shape for persistence and
+    subsequent reads, while the tuple-based fields give the core layer immutable
+    typed structures.
+
+    Conversion rules:
+    - list-like API fields become tuples for immutability in the core layer
+    - relationship and dependency entries become dedicated core reference models
+    - the original manifest shape is preserved as JSON-compatible data
+    """
     return SkillManifestData(
         schema_version=manifest.schema_version,
         skill_id=manifest.skill_id,
@@ -268,18 +373,44 @@ def _to_manifest_data(manifest: SkillManifest) -> SkillManifestData:
         name=manifest.name,
         description=manifest.description,
         tags=tuple(manifest.tags),
-        depends_on=tuple(_to_relationship(item) for item in manifest.depends_on or []),
+        depends_on=tuple(_to_dependency(item) for item in manifest.depends_on or []),
         extends=tuple(_to_relationship(item) for item in manifest.extends or []),
         conflicts_with=tuple(_to_relationship(item) for item in manifest.conflicts_with or []),
         overlaps_with=tuple(_to_relationship(item) for item in manifest.overlaps_with or []),
+        raw_manifest_json=manifest.model_dump(exclude_unset=True, mode="json"),
     )
 
 
 def _to_relationship(reference: RelationshipRef) -> SkillRelationshipRef:
+    """Project an API relationship reference into the core domain shape.
+
+    This is a thin adapter whose main purpose is keeping API-layer models from
+    leaking into the core service boundary.
+    """
     return SkillRelationshipRef(skill_id=reference.skill_id, version=reference.version)
 
 
+def _to_dependency(reference: DependencyDeclaration) -> SkillDependencyRef:
+    """Project an API dependency declaration into the core domain shape.
+
+    Marker lists are converted to tuples for immutability, while preserving
+    ``None`` when the field was not authored.
+    """
+    return SkillDependencyRef(
+        skill_id=reference.skill_id,
+        version=reference.version,
+        version_constraint=reference.version_constraint,
+        optional=reference.optional,
+        markers=tuple(reference.markers) if reference.markers is not None else None,
+    )
+
+
 def _to_detail_response(*, stored: SkillVersionDetail) -> SkillVersionDetailResponse:
+    """Convert a core detail projection into the publish response schema.
+
+    The service returns a domain object. This helper reshapes it into the exact
+    public HTTP contract used by the publish endpoint.
+    """
     return SkillVersionDetailResponse(
         skill_id=stored.skill_id,
         version=stored.version,
@@ -297,6 +428,11 @@ def _to_detail_response(*, stored: SkillVersionDetail) -> SkillVersionDetailResp
 
 
 def _to_fetch_response(*, stored: SkillVersionDetail) -> SkillVersionFetchResponse:
+    """Convert a core detail projection into the fetch response schema.
+
+    Unlike the publish response, fetch also requires binary artifact content.
+    Those bytes are JSON-encoded as base64 text.
+    """
     if stored.artifact_bytes is None:
         raise ArtifactStorageFailureError("Artifact bytes were not returned for fetch response.")
     return SkillVersionFetchResponse(
@@ -323,5 +459,12 @@ def _error_response(
     message: str,
     details: dict[str, Any] | None = None,
 ) -> JSONResponse:
+    """Return the stable JSON error envelope used by this router.
+
+    Keeping all error construction in one helper ensures:
+    - the same envelope shape across endpoints
+    - consistent JSON serialization behavior
+    - stable machine-readable error codes for clients
+    """
     payload = ErrorEnvelope(error=ErrorBody(code=code, message=message, details=details))
     return JSONResponse(status_code=status_code, content=payload.model_dump(mode="json"))

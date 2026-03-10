@@ -2,31 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Literal
-
 from fastapi import APIRouter, Response
-from pydantic import BaseModel
 
 from app.core.dependencies import ReadinessServiceDep, SettingsDep
+from app.interface.dto.health import HealthzResponse, ReadinessCheck, ReadyzResponse
 
 router = APIRouter(tags=["health"])
-
-
-class HealthzResponse(BaseModel):
-    status: Literal["ok"] = "ok"
-    service: str
-    environment: str
-
-
-class ReadinessCheck(BaseModel):
-    name: str
-    status: Literal["ok", "error"]
-    detail: str | None = None
-
-
-class ReadyzResponse(BaseModel):
-    status: Literal["ready", "not_ready"]
-    checks: list[ReadinessCheck]
 
 
 @router.get("/healthz", response_model=HealthzResponse)
