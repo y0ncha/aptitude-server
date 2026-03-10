@@ -1,614 +1,291 @@
-# Aptitude Server
+# Aptitude Overview
 
-Aptitude is a versioned, dependency-aware skill server for AI systems, designed to manage skills as atomic, immutable, and composable capability units rather than ad hoc prompt fragments. It provides deterministic versioning, explicit dependency modeling, structured metadata enrichment, and evaluation-based ranking, enabling secure skill supply chains, reproducible compositions, controlled evolution, and data-driven selection of the most relevant and reliable capabilities.
+Aptitude is a versioned, dependency-aware skill ecosystem for AI systems.
+
+- `aptitude-server` is a registry service for immutable artifacts and metadata.
+- `aptitude-resolver` is the client-side runtime that performs agentic search, dependency solving, deterministic lock generation, and execution planning.
+
+This mirrors PyPI/Maven/npm architecture: the registry stores immutable packages and searchable metadata, while the client interprets intent, chooses candidates, resolves dependencies, and executes the plan.
 
 ---
 
 ## Market Fit
 
-### **Version & Dependency Management**
+### Version and Dependency Management
 
 **Problem**
 
-Skills tend to become monolithic and duplicated over time. Updates require manual propagation, personalization creates untracked forks, and overlapping capabilities introduce redundancy and inconsistency across agents.
+Skills become monolithic, duplicated, and hard to upgrade safely across environments.
 
 **Solution**
 
-Aptitude models skills as atomic, dependency-aware assets with version pinning, transitive resolution, fork lineage tracking, and explicit conflict handling. This enables modular skill design, controlled upgrades, safe specialization, and reproducible compositions across environments.
+Aptitude models skills as immutable `skill@version` units with explicit direct dependency declarations, allowing resolver clients to compute deterministic lock closures.
 
-### **Skill Evaluation & Ranking**
+### Skill Evaluation and Discovery
 
 **Problem**
 
-When multiple skills provide similar functionality, selection becomes subjective and inconsistent. There is no standardized mechanism to compare efficiency, quality, maturity, or adoption.
+When multiple skills overlap, selection quality is inconsistent and often undocumented.
 
 **Solution**
 
-Aptitude enriches each skill with structured metadata such as quality score, freshness, footprint, and usage frequency. This enables objective ranking, minimal bundle construction, redundancy elimination, and data-driven selection instead of manual preference.
+Aptitude enriches published versions with structured metadata (quality, freshness, footprint, usage), enabling fast server-side candidate retrieval and objective client-side reranking inputs.
 
-### **Skill Supply Chain Security**
+### Skill Supply Chain Security
 
 **Problem**
 
-AI skills are reused, modified, and redistributed without clear provenance, integrity guarantees, or deterministic resolution. This creates exposure to prompt injection, undocumented behavioral drift, hidden transitive dependencies, and unverified third-party contributions.
+Teams need provenance, integrity, and lifecycle controls for third-party and internal skills.
 
 **Solution**
 
-Aptitude introduces software-grade governance through immutable versioning, explicit dependency graphs, provenance metadata, and deterministic resolution. Every skill has traceable origin, explicit transitive visibility, and reproducible builds — enabling secure, auditable, and controlled AI capability supply chains.
+Aptitude provides immutable artifacts, checksums, trust metadata, and auditable lifecycle events. Resolver enforces lock replay and integrity verification at runtime.
 
 ---
 
-## **Design**
+## Design
 
-Aptitude is designed as a layered, graph-aware server that manages AI skills as immutable, versioned assets and resolves them into deterministic, reproducible bundles.
+Aptitude separates registry authority from resolution authority.
 
-The system centralizes governance, resolution logic, and metadata-driven optimization within a single authoritative service. It is execution-agnostic and does not invoke models.
+- Registry authority (`aptitude-server`): publish, exact fetch, list, search candidate retrieval, discovery metadata, governance metadata.
+- Resolution authority (`aptitude-resolver`): prompt interpretation, reranking, final selection, dependency solving, conflict handling, lock generation, execution planning.
+
+Use this rule consistently:
+
+- Server owns data-local work.
+- Resolver owns decision-local work.
+
+Data-local work includes indexed search over names, descriptions, tags, and structured metadata, plus exact immutable version retrieval.
+Decision-local work includes prompt understanding, environment-aware reranking, final skill choice, dependency solving, and execution planning.
 
 ```mermaid
 flowchart TB
 
-Client["Client / Loader / SDK"]
+Client["Client / MCP / CLI"]
+Resolver["aptitude-resolver\n- Prompt Interpreter\n- Query Builder\n- Reranker + Selector\n- Dependency Solver\n- Lock Builder\n- Plugin Orchestrator"]
+Registry["aptitude-server\n- Publish/Fetch/List APIs\n- Search Candidate Retrieval\n- Governance + Metadata"]
+Storage["Persistence\n- Artifact Store\n- PostgreSQL Indexes\n- Audit Log"]
 
-Interface["Server Interface"]
-
-Core["Core Domain Layer
-- Asset Catalog
-- Resolution Engine
-- Policy"]
-
-Intelligence["Intelligence Layer
-- Metadata Engine
-- Relationship Graph"]
-
-Storage["Persistence Layer
-- Asset Store
-- Metadata Index
-- Graph Store"]
-
-Audit["Observability & Audit"]
-
-Client --> Interface
-Interface --> Core
-Core --> Intelligence
-Intelligence --> Storage
-
-Core --> Audit
-Interface --> Audit
+Client --> Resolver
+Resolver --> Registry
+Registry --> Storage
+Resolver --> Client
 ```
 
 ### Layering Rules (Implementation)
 
-- Dependency direction is enforced as `interface -> core`, with persistence behind core-defined ports.
-- Interface modules must not import persistence modules directly.
-- Core modules must not import persistence modules directly.
-- Persistence implements core ports and is wired in the composition root.
-- `app/main.py` is the composition root where core and persistence are connected.
+- Server layering remains `interface -> core -> ports -> persistence`.
+- Resolver never imports server persistence internals.
+- Integration between resolver and server is API/SDK contract only.
+- `app/main.py` remains server composition root.
 
-### **Client Layer**
+### Resolver Layer (Client-Side)
 
-External consumers such as loaders, SDKs, and administrative tooling interact with the server through a controlled interface. This layer is responsible only for requesting assets or resolved bundles.
+Resolver is responsible for runtime dependency behavior.
 
-It does not contain domain intelligence. All dependency traversal, conflict validation, ranking, and optimization remain inside the server.
+- Interprets user prompts and task context.
+- Builds structured search queries for the registry.
+- Reranks candidate results using local policy, workspace context, and installed state.
+- Reads manifests/metadata from server APIs for chosen candidates.
+- Expands dependency closure locally.
+- Applies deterministic tie-break and policy hooks.
+- Produces lock snapshot with selected versions and checksums.
+- Builds execution plan and emits trace output.
 
-Request Handling
+### Server Interface and Domain
 
-- Requests specific skill versions or resolved bundles.
-- May cache previously resolved bundles for efficiency.
-- Presents resolution reports and provenance data to users.
+Server is responsible for registry correctness and governance.
 
-Boundary
+- Validates and publishes immutable artifacts.
+- Serves version metadata and artifact payloads.
+- Exposes indexed discovery over descriptions, tags, and structured metadata.
+- Returns compact, stable candidate sets with advisory ranking signals.
+- Exposes lifecycle state (published/deprecated/archived).
+- Enforces publish/read governance and auditability.
 
-- Does not expand dependencies.
-- Does not enforce policy rules.
-- Does not apply ranking or optimization logic.
+### Persistence
 
-### **Server Interface Layer**
+Persistence ensures durability and integrity.
 
-The Server Interface Layer defines the stable boundary of the system. It provides controlled access to assets, metadata, graphs, and resolution capabilities.
+- Artifact store for immutable skill payloads.
+- PostgreSQL indexes for metadata and lifecycle/read models.
+- Audit records for publish/deprecate/archive/read operations.
 
-This layer abstracts internal storage and resolution mechanics behind a governed contract.
+### Observability and Audit
 
-Access Control
-
-- Enforces server-level governance and policy boundaries.
-- Validates incoming requests before resolution.
-- Ensures only published, valid versions are accessible.
-
-Interface Stability
-
-- Shields consumers from internal implementation changes.
-- Maintains a consistent contract for loaders and tooling.
-- Ensures deterministic behavior across environments.
-
-### **Core Domain Layer**
-
-The Core Domain Layer contains the authoritative logic of the server. It governs asset lifecycle and constructs deterministic bundles from requested skills.
-
-This layer defines how assets are interpreted and assembled.
-
-Asset Catalog
-
-- Manages skill lifecycle and immutability.
-- Ensures each version represents a fixed, reproducible state.
-- Controls publishing, deprecation, and archival status.
-
-Resolution Engine
-
-- Expands direct and transitive dependencies.
-- Validates conflicts and compatibility constraints.
-- Eliminates redundant or overlapping assets.
-- Applies metadata-driven prioritization.
-- Produces a deterministic ResolvedBundle.
-
-Policy
-
-- Defines trust tiers and governance rules.
-- Controls resolution constraints and selection strategy.
-- Ensures reproducibility given version and server state.
-
-### **Intelligence Layer**
-
-The Intelligence Layer provides structured signals and explicit relationships used by the Core Domain Layer during resolution.
-
-It supplies information but does not independently decide outcomes.
-
-Relationship Graph
-
-- Models typed relationships between skill versions.
-- Encodes dependencies, conflicts, overlaps, and extensions.
-- Enables safe traversal and impact analysis.
-
-Metadata Engine
-
-- Maintains derived signals used for ranking and filtering.
-- Supports lifecycle management and deprecation workflows.
-- Provides structured inputs for deterministic optimization.
-
-### **Persistence Layer**
-
-The Persistence Layer stores the immutable artifacts and indexed data required for efficient resolution.
-
-It guarantees durability and integrity without embedding domain logic.
-
-Asset Store
-
-- Stores skill artifacts and versioned definitions.
-- Preserves immutability once published.
-- Acts as the source of truth for content.
-
-Metadata Index
-
-- Stores structured metadata for fast filtering and ranking.
-- Enables efficient resolution queries.
-- Supports search and governance operations.
-
-Graph Store
-
-- Persists typed relationships between skill versions.
-- Enables efficient dependency traversal.
-- Maintains consistency across server state.
-
-### **Observability & Audit Layer**
-
-The Observability and Audit Layer provides traceability across server operations.
-
-It ensures resolution behavior is explainable and governed.
-
-Audit Records
-
-- Logs publishing, deprecation, and resolution events.
-- Tracks provenance and lifecycle transitions.
-- Supports compliance and forensic analysis.
-
-Resolution Trace
-
-- Records why specific assets were selected.
-- Captures applied policies and ranking signals.
-- Enables reproducible debugging of bundle construction.
+- Server logs publish/read lifecycle events.
+- Resolver logs solving decisions, lock composition, and plugin outcomes.
+- Both sides emit trace IDs for cross-service diagnostics.
 
 ---
 
-## **End-to-End Flows**
+## End-to-End Flows
 
-### **Skill Publication Flow**
+### Skill Publication Flow
 
 1. **Creation**
-    - A new skill is authored as an atomic unit.
-    - Dependencies and relationships are explicitly declared.
-    - Required metadata fields are attached.
+   - A skill is authored with manifest + artifact.
+   - Direct dependencies are declared explicitly.
 2. **Validation**
-    - Schema and structure are validated.
-    - Dependency references are verified.
-    - Policy and trust constraints are enforced.
+   - Schema, immutability, and governance checks run on server.
 3. **Versioning**
-    - A unique immutable version is assigned.
-    - Artifact and metadata are persisted.
-    - Relationship graph is updated.
+   - Immutable `skill@version` is persisted with checksum/provenance.
 4. **Indexing**
-    - Metadata signals are indexed.
-    - Relationship edges are stored.
-    - Skill becomes discoverable and resolvable.
+   - Metadata/read models are refreshed for discovery APIs.
 
-Once published, the version becomes immutable and reproducible.
-
-### **Skill Consumption Flow**
+### Skill Consumption Flow
 
 1. **Request**
-    - A client requests a specific skill version or a resolved bundle.
-    - Policy constraints are applied.
-2. **Resolution**
-    - The server constructs a deterministic bundle.
-    - Dependencies are expanded and validated.
-    - Redundancies are eliminated.
-3. **Delivery**
-    - A ResolvedBundle is returned.
-    - A ResolutionReport provides traceability.
-    - The client may cache the result.
+   - Client submits prompt/tool request to resolver.
+2. **Candidate Retrieval**
+   - Resolver converts prompt intent into structured search input.
+   - Server returns a compact candidate set from indexed metadata and description search.
+3. **Selection**
+   - Resolver reranks candidates using task, policy, and environment context.
+4. **Metadata Fetch**
+   - Resolver fetches required version metadata from server for selected candidates.
+5. **Solve and Lock**
+   - Resolver computes deterministic dependency closure and writes lock output.
+6. **Artifact Fetch**
+   - Resolver downloads exact locked versions and verifies checksums.
+7. **Plan and Execute**
+   - Resolver applies plugins/policies and returns execution plan + trace.
 
-The server remains execution-agnostic. It delivers validated capability bundles, not runtime execution.
-
-### **Skill Evaluation Flow**
+### Skill Evaluation Flow
 
 1. **Trigger**
-    - Evaluation is initiated after publication or during periodic review.
-    - May be automated (benchmark execution) or curated (manual scoring).
-    - Operates on a specific immutable skill version.
+   - Evaluation runs after publish or on schedule.
 2. **Measurement**
-    - Defined benchmarks or test suites are executed.
-    - Performance, quality, footprint, or reliability metrics are collected.
-    - Results are normalized into structured evaluation outputs.
-3. **Scoring**
-    - Evaluation outputs are translated into standardized metadata signals.
-    - Quality score, efficiency indicators, or maturity levels may be derived.
-    - Comparative signals may be calculated against similar skills.
-4. **Metadata Update**
-    - Evaluation results are stored as metadata attributes.
-    - Metadata indexes are refreshed.
-    - The skill artifact itself remains unchanged.
-
-Evaluation enriches the Intelligence Layer without mutating the skill definition. Future resolution decisions may incorporate these updated signals while preserving determinism relative to server state.
+   - Benchmarks generate quality/reliability metrics.
+3. **Metadata Update**
+   - Signals are written to metadata indexes (artifact remains immutable).
+4. **Consumption**
+   - Resolver may use signals as deterministic scoring inputs under pinned policy/version.
 
 ---
 
-## **Planning**
+## Planning
 
-Goal: each step ends with a **complete, testable product** (a “vertical slice”), even if minimal. Steps are atomic and build cleanly toward the full server.
+Goal: each step ends with a complete, testable vertical slice.
 
-**Default implementation choice (recommended)**
+### Step 1 - Immutable Registry Core (MVP-0)
 
-- Language/runtime: **Python 3.12+**
-- API: **FastAPI + Uvicorn**
-- Database: **PostgreSQL** (default from MVP-0)
-- Data layer: **SQLAlchemy 2.0 + Alembic**
-- Validation/contracts: **Pydantic v2**
-- Packaging: **Docker + Docker Compose**
-
-### **Step 1 — Read-Only Skill Catalog (MVP-0)**
-
-**Outcome (testable):** You can store skills and fetch skill@version reliably.
+**Outcome**: publish and fetch `skill@version` reliably.
 
 **Scope**
 
-- Define the **Skill Artifact** format (file-based): skill.md + manifest.json (or frontmatter).
-- Publish = add a new versioned folder (immutable by convention).
-- Retrieve by id + version.
-
-**Stack**
-
-- Storage: local filesystem or object storage later (start with FS).
-- Index DB: **PostgreSQL** (primary from MVP-0).
-- Service: **FastAPI (Python)** with **Pydantic v2** schemas.
-- API serving: **Uvicorn** (dev) and **Gunicorn + Uvicorn workers** (prod).
-- Packaging: Docker + persistent volume.
-
-**Architecture concepts**
-
-- Immutable artifacts
-- Server interface boundary
-- Basic audit log (append-only file)
+- Define artifact + manifest schema.
+- Publish immutable versions.
+- Fetch by `skill_id` + `version`.
 
 **Tests**
 
-- Integration tests: publish 3 skills, fetch by version, verify immutability.
+- Publish/fetch integration tests.
+- Immutability overwrite rejection tests.
 
-### **Step 2 — Dependency Graph + Deterministic Bundle (MVP-1)**
+### Step 2 - Dependency Metadata Contract (MVP-1)
 
-**Outcome (testable):** Client requests a root skill and gets a deterministic bundle (dependencies expanded).
+**Outcome**: server reliably exposes direct dependency metadata; no server-side closure solving.
 
 **Scope**
 
-- Add depends_on in manifest (explicit).
-- Build transitive closure.
-- Return ResolvedBundle = ordered list of skill versions.
-- Return ResolutionReport (minimal): dependency tree + included list.
-
-**Stack**
-
-- Graph modeling in PostgreSQL: adjacency table edges(from, to, type).
-- Data access: **SQLAlchemy 2.0** with explicit server queries.
-- Migrations: **Alembic**.
-- Keep everything in PostgreSQL for now.
-
-**Architecture concepts**
-
-- Resolver lives in server service (authoritative)
-- Deterministic ordering rule (e.g., topo sort + stable tie-break by id)
+- Add/validate `depends_on` declarations.
+- Expose metadata via stable versioned APIs.
+- Add compatibility fixtures for resolver consumers.
 
 **Tests**
 
-- Golden tests: same input -> identical bundle ordering.
-- Cycle detection test.
+- Contract tests for manifest/metadata payloads.
+- Backward-compatibility tests on API schema versions.
 
-### **Step 3 — Metadata Index + Basic Search (MVP-2)**
+### Step 3 - Client Resolver and Locking (MVP-2)
 
-**Outcome (testable):** Skills are discoverable and sortable by metadata signals.
+**Outcome**: resolver computes deterministic lock snapshots client-side.
 
 **Scope**
 
-- Introduce metadata fields: provenance, created_at, updated_at, footprint_estimate.
-- Add server endpoints to query/filter skills (by tag, status, etc.).
-- Derive footprint_estimate (simple heuristic) and store it.
-
-**Stack**
-
-- Use PostgreSQL: table skills, table metadata, plus native full-text indexes for search.
-- Query layer: SQLAlchemy + explicit sort keys for deterministic ordering.
-- Optional: add Meilisearch later, not now.
-
-**Architecture concepts**
-
-- “Metadata as decision surface”
-- Derived vs source-of-truth separation
+- Implement dependency solving in resolver.
+- Add deterministic tie-break rules.
+- Output lock and trace payloads.
 
 **Tests**
 
-- Search returns expected results.
-- Sorting stable and deterministic.
+- Golden tests: same input/context -> identical lock hash.
+- Cycle/conflict handling tests.
 
-### **Step 4 — Conflicts + Overlaps (Governed Composition) (MVP-3)**
+### Step 4 - Policy and Plugin Governance (MVP-3)
 
-**Outcome (testable):** Server can reject invalid compositions and reduce redundancy.
+**Outcome**: runtime policy checks and scanners are pluggable and auditable.
 
 **Scope**
 
-- Add relationship types: conflicts_with, overlaps_with.
-- Define simple policy: conflicts fail resolution; overlaps pick best by rule.
-- Add Policy object (config file) controlling tie-breakers.
-
-**Stack**
-
-- Continue with PostgreSQL edges table: type in (depends, conflicts, overlaps, extends).
-- Policy config: **Pydantic Settings** + env-driven overrides.
-
-**Architecture concepts**
-
-- Policy-driven resolution (explicit rules)
-- Constraint validation as first-class behavior
+- Pre/post-solve plugin hooks.
+- Security scanner and overlap/conflict policy plugins.
+- Structured plugin decision traces.
 
 **Tests**
 
-- Conflict test: resolution fails with an explainable report.
-- Overlap test: deterministic winner selection.
+- Plugin failure isolation tests.
+- Fail-open/fail-closed policy behavior tests.
 
-### **Step 5 — Evaluation Pipeline (Signals) (MVP-4)**
+### Step 5 - Discovery and Evaluation Signals (MVP-4)
 
-**Outcome (testable):** You can run evaluation and see resolution change due to updated metadata (in a controlled way).
+**Outcome**: discovery quality improves through fast server-side candidate retrieval and client-side reranking without mutating artifacts.
 
 **Scope**
 
-- Add EvaluationRun entity and store results per skill@version.
-- Compute quality_score from benchmark outputs.
-- Update metadata index and expose it.
-- Add server-state snapshot mechanism for reproducibility (minimal).
-
-**Stack**
-
-- PostgreSQL tables: evaluation_runs, evaluation_results.
-- Runner (MVP): in-process scheduler with **APScheduler**.
-- Scale option: **Celery + Redis** worker queue.
-
-**Architecture concepts**
-
-- Evaluation does not mutate artifacts
-- Snapshot-based determinism (tie resolution to repo_state_id)
+- Evaluation runs + score storage.
+- Discovery/filter/sort API improvements for metadata and description search.
+- Resolver scoring inputs pinned by policy/resolver version.
 
 **Tests**
 
-- After evaluation, ranking changes as expected.
-- Resolving with pinned repo_state_id is stable.
+- Discovery ranking benchmarks.
+- Deterministic solver behavior under fixed metadata snapshots.
 
-### **Step 6 — Governance & Supply Chain Controls (MVP-5)**
+### Step 6 - Supply Chain Hardening (MVP-5)
 
-**Outcome (testable):** Provenance and integrity checks are enforced.
+**Outcome**: provenance, integrity, and trust controls are enforced end-to-end.
 
 **Scope**
 
-- Trust tiers: official/community/experimental.
-- Deprecation lifecycle: published → deprecated → archived.
-- Integrity: checksums for artifacts; optional signing later.
-- Access policies: allow/disallow untrusted skills by mode.
-
-**Stack**
-
-- Checksums stored in PostgreSQL metadata.
-- Checksum implementation: Python **hashlib.sha256**.
-- Signatures later: **sigstore-python** or simple public key signatures.
-
-**Architecture concepts**
-
-- Trust enforcement at server boundary
-- Audit-first design
+- Trust tiers and lifecycle controls.
+- Checksum enforcement and optional signatures.
+- Enterprise policy gates for untrusted content.
 
 **Tests**
 
-- “Enterprise mode” blocks untrusted skills.
-- Deprecation affects discoverability and resolution policy.
+- Checksum/signature verification tests.
+- Policy-blocking tests for restricted trust tiers.
 
 ---
 
-## Tech Stack (Python / FastAPI)
+## Tech Stack
 
-### **Service Layer**
+### Server
 
-**FastAPI**
+- FastAPI + Pydantic v2 + OpenAPI.
+- PostgreSQL + SQLAlchemy 2.0 + Alembic.
+- PostgreSQL-backed artifact mapping (digest keyed) and object storage (future).
 
-Primary API framework and server interface boundary.
+### Resolver
 
-**Pydantic v2**
+- Python service/CLI with prompt interpretation, candidate reranking, and deterministic solving engine.
+- Local cache for metadata/artifacts with bounded TTL.
+- Plugin interface for policy/scanner extensions.
 
-Schema validation, serialization, and contract safety.
+### Quality and Operations
 
-**Uvicorn (dev) / Gunicorn + Uvicorn workers (prod)**
+- pytest, ruff, mypy.
+- Structured logs and optional OpenTelemetry.
+- Docker + Docker Compose.
 
-ASGI serving for local development and production deployment.
+### Determinism Model
 
-**OpenAPI (spec file)**
+Reproducibility is lock-based.
 
-Auto-generated API contract and documentation from FastAPI routes.
+- `resolver_version` + lock schema version
+- selected versions + checksums
+- optional metadata snapshot identifier
 
-### **Persistence**
-
-**PostgreSQL (primary from MVP-0)**
-
-Relational storage for:
-
-- Skill versions
-- Metadata
-- Relationship graph (edges)
-- Evaluation results
-- Server state snapshots
-
-PostgreSQL is the default from the first milestone to keep behavior aligned with production-grade concurrency and indexing needs.
-
-SQLite can be used only as an optional local fallback for isolated development tests.
-
-**SQLAlchemy 2.0**
-
-Database abstraction and query composition.
-
-**Alembic**
-
-Database schema migrations and versioned change tracking.
-
-**Driver choice**
-
-Use `psycopg` as the primary driver; `sqlite3` is optional for isolated local tests.
-
-### **Artifact Storage**
-
-**Filesystem (initial)**
-
-Stores immutable skill artifacts (skills/<id>/<version>).
-
-**S3 / GCS (future)**
-
-Object storage for scalable artifact persistence.
-
-**hashlib.sha256**
-
-Checksum generation for integrity validation.
-
-### **Graph Modeling**
-
-**Adjacency table (relational model)**
-
-Stores typed relationships:
-
-- depends_on
-- conflicts_with
-- overlaps_with
-- extends
-
-No separate graph DB initially.
-
-Consider Neo4j only if traversal complexity justifies it.
-
-### **Search & Indexing**
-
-**PostgreSQL Full-Text Search (MVP)**
-
-Full-text search for skills and metadata.
-
-**Meilisearch (future optional)**
-
-If advanced search capabilities become necessary.
-
-### **Evaluation Pipeline**
-
-**APScheduler (MVP)**
-
-Runs evaluation tasks inside service.
-
-**jobs table (DB-backed queue)**
-
-Tracks evaluation tasks deterministically.
-
-Later option:
-
-**Celery + Redis** if async scale required.
-
-### **Observability**
-
-**structlog or logging (stdlib)**
-
-Structured logging.
-
-**prometheus-fastapi-instrumentator (optional)**
-
-Metrics collection.
-
-**OpenTelemetry (optional)**
-
-Tracing and distributed observability.
-
-### **Configuration & Environment**
-
-**Environment variables (.env for local only)**
-
-Service configuration.
-
-**pydantic-settings**
-
-Maps environment variables to typed config structs.
-
-### **Testing & Quality**
-
-**pytest**
-
-Unit and integration tests.
-
-**httpx + pytest-asyncio**
-
-API and async integration testing.
-
-**ruff + mypy**
-
-Linting, formatting, and static typing checks.
-
-**black (optional if not using `ruff format`)**
-
-Code formatting.
-
-### **Dev & Deployment**
-
-**Docker**
-
-Containerized deployment.
-
-**Docker Compose (local)**
-
-Local multi-service setup.
-
-**Makefile or justfile**
-
-Common commands (run, test, lint, migrate).
-
-### **Versioning & Determinism**
-
-**repo_state_id (DB concept)**
-
-Snapshot marker to guarantee reproducible resolution.
-
-**ResolutionReport (domain model)**
-
-Explainability and auditability of bundle construction.
+The server guarantees immutable artifact retrieval and stable candidate retrieval under a pinned catalog state; resolver guarantees deterministic lock composition and final choice traceability.

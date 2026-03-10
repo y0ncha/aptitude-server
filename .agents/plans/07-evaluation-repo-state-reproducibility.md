@@ -1,7 +1,7 @@
-# Plan 07 — Evaluation and Server State Reproducibility
+# Plan 07 — Evaluation and Catalog Snapshot Reproducibility
 
 ## Goal
-Add evaluation signals and server state snapshots so ranking can evolve without breaking reproducibility.
+Add evaluation signals and catalog snapshots so metadata quality can evolve while resolver search inputs and exact-read states remain reproducible.
 
 ## Stack Alignment
 - Runtime: Python 3.12+
@@ -11,29 +11,33 @@ Add evaluation signals and server state snapshots so ranking can evolve without 
 
 ## Scope
 - Add evaluation run lifecycle and result storage.
-- Normalize results to metadata quality score.
-- Add `repo_state_id` snapshot creation.
-- Support resolution pinned to snapshot state.
+- Normalize results to metadata quality scores and advisories.
+- Add immutable `catalog_snapshot_id` creation for metadata/index state.
+- Expose snapshot read APIs for resolver pinning and audit.
+- Explicitly exclude using snapshots to run server-side dependency solving or final candidate selection.
 
 ## Architecture Impact
-- Connects intelligence signals to the core resolver while preserving deterministic replay.
-- Extends the audit trail for evaluation-driven metadata changes.
+- Connects metadata evolution to reproducibility controls.
+- Extends audit trail for evaluation-driven ranking changes.
+- Improves cross-service determinism by giving resolver a stable metadata and candidate-retrieval reference.
 
 ## Deliverables
 - Endpoint: `POST /v1/evaluations/runs`.
 - Endpoint: `GET /v1/evaluations/runs/{run_id}`.
-- Endpoint: `GET /v1/repo-states/{repo_state_id}`.
-- Tables for evaluation runs, results, and repo state snapshots.
-- Resolver support for pinned `repo_state_id`.
-- Learning note on mutable signals over immutable artifacts.
+- Endpoint: `GET /v1/catalog-snapshots/{catalog_snapshot_id}`.
+- Tables for evaluation runs, derived scores, and snapshot manifests.
+- Snapshot metadata included in discovery/version responses (for example, snapshot ID or version tag).
+- Learning note on mutable derived signals over immutable artifacts.
 
 ## Acceptance Criteria
-- Evaluation updates metadata but not artifact content or checksum.
-- Pinned `repo_state_id` produces stable bundle and report outputs.
-- Unpinned latest-state resolution can change only via documented signals.
+- Evaluation updates derived metadata but not artifact content or checksums.
+- Pinned `catalog_snapshot_id` returns stable metadata/discovery views across repeated reads.
+- Pinned `catalog_snapshot_id` preserves candidate ordering for repeated search requests against the same query and filters.
+- Unpinned latest-state reads can change only via documented evaluation and governance paths.
+- Resolver can consume snapshot IDs without any server `resolve` API dependency.
 
 ## Test Plan
 - Integration test that runs evaluation and verifies metadata update path.
-- Determinism test with pinned state across repeated resolutions.
+- Determinism test with pinned snapshot across repeated metadata reads and repeated search requests.
 - Differential test for latest state vs pinned state behavior.
 - Audit test that evaluation and snapshot events are fully recorded.

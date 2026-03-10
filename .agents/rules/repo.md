@@ -2,10 +2,10 @@
 
 ## Architecture Boundaries
 - Interface layer validates requests and maps DTOs.
-- Core layer owns lifecycle, resolution, and policy decisions.
-- Intelligence layer provides metadata and relationship signals.
+- Core layer owns immutable catalog lifecycle, integrity checks, and policy decisions.
+- Intelligence layer provides metadata and relationship signals, not runtime solving.
 - Persistence layer stores artifacts, metadata indexes, and edges.
-- Audit layer records publish/deprecate/resolve/evaluate events.
+- Audit layer records publish/read/governance/evaluation events.
 - Dependency direction is strict:
   - `interface -> core`
   - `core -> intelligence` (when present)
@@ -19,9 +19,10 @@
 
 ## Required Invariants
 - Immutable skill versions.
-- Deterministic `ResolvedBundle` generation.
+- Dependency declarations are returned exactly as authored for each immutable version.
 - Explicit typed relationships (`depends_on`, `conflicts_with`, `overlaps_with`, `extends`).
 - Execution-agnostic server behavior.
+- No server-owned `/resolve`, bundle, report, or execution-planning APIs.
 
 ## Naming Convention
 - Use `kebab-case` for new filenames, rule identifiers, and plan slugs unless an external framework/tool requires a different format.
@@ -31,6 +32,8 @@
 - Do not start the next plan file before the current one meets its acceptance criteria.
 - Keep plan files append-only: do not renumber or rename completed plans.
 - Every implementation PR should map to exactly one active plan file.
+- When finishing work on a plan, review older changelogs and prior implementation
+  work for logic conflicts, redundant code, or obsolete code that can now be removed.
 
 ## TDD Workflow
 - Follow RED -> GREEN -> REFACTOR for non-trivial changes.
@@ -49,5 +52,5 @@
 - Document deterministic rules explicitly (ordering, tie-breakers, policy precedence).
 
 ## Mandatory Outputs
-- `ResolvedBundle` for resolution requests.
-- `ResolutionReport` explaining selection and constraints.
+- Stable manifest, integrity, and artifact metadata contracts for exact version reads.
+- Deterministic version listings and boundary-safe error envelopes.

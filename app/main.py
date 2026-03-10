@@ -25,13 +25,14 @@ from app.persistence.db import (
 )
 from app.persistence.skill_registry_repository import SQLAlchemySkillRegistryRepository
 
-STARTUP_BANNER = r"""                                    
-    // | |                        
-   //__| |     ___     ___ ___    
-  / ___  |   //   ) )   / /       
- //    | |  //___/ /   / /        
-//     | | //         / /      () 
-
+STARTUP_BANNER = r"""
+      //| |  
+     // | |                        
+    //__| |     ___     ___ ___    
+   / ___  |   //   ) )   / /       
+  //    | |  //___/ /   / /        
+ //     | | //         / /      () 
+================================================ 
 """
 
 # Configure logging before lifespan starts so startup logs are consistently formatted.
@@ -48,10 +49,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     configure_logging(settings.log_level)
     init_engine(settings.database_url)
     session_factory = get_session_factory()
+    registry_repository = SQLAlchemySkillRegistryRepository(session_factory=session_factory)
+    audit_recorder = SQLAlchemyAuditRecorder(session_factory=session_factory)
     app.state.skill_registry_service = SkillRegistryService(
-        registry=SQLAlchemySkillRegistryRepository(session_factory=session_factory),
+        registry=registry_repository,
         artifact_store=FileSystemArtifactStore(root_dir=settings.artifact_root_dir),
-        audit_recorder=SQLAlchemyAuditRecorder(session_factory=session_factory),
+        audit_recorder=audit_recorder,
     )
     logger.info("service startup complete")
     try:
