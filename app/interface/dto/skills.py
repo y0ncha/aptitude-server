@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -34,6 +35,9 @@ VERSION_CONSTRAINT_PATTERN = re.compile(
 # Execution markers are preserved as authored, but constrained to a small token
 # grammar so they remain safe and deterministic to store and compare.
 MARKER_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$")
+MAX_BATCH_ITEMS = 100
+RelationshipEdgeType = Literal["depends_on", "extends"]
+BatchItemStatus = Literal["found", "not_found"]
 
 
 class RelationshipRef(BaseModel):
@@ -232,4 +236,273 @@ class SkillVersionListResponse(BaseModel):
     skill_id: str = Field(description="Stable identifier of the skill.")
     versions: list[SkillVersionSummaryResponse] = Field(
         description="Published versions in deterministic reverse chronological order.",
+    )
+
+
+class ExactSkillCoordinateRequest(BaseModel):
+    """Exact immutable skill-version coordinate used by fetch and resolution reads."""
+
+    skill_id: str = Field(
+        min_length=1,
+        max_length=128,
+        pattern=SKILL_ID_PATTERN,
+        description="Stable identifier of the requested skill.",
+    )
+    version: str = Field(
+        pattern=SEMVER_PATTERN,
+        description="Exact immutable semantic version of the requested skill.",
+    )
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class ArtifactRefResponse(BaseModel):
+    """Backend-agnostic artifact reference returned by the new fetch APIs."""
+
+    checksum_algorithm: str = Field(description="Checksum algorithm for the immutable artifact.")
+    checksum_digest: str = Field(description="Checksum digest for the immutable artifact.")
+    size_bytes: int = Field(description="Artifact size in bytes.")
+    download_path: str = Field(description="API path clients should call to stream the artifact.")
+
+
+class ExactSkillVersionResponse(BaseModel):
+    """Exact immutable version metadata returned by the new fetch APIs."""
+
+    skill_id: str = Field(description="Stable identifier of the skill.")
+    version: str = Field(description="Immutable semantic version of the skill.")
+    manifest: SkillManifest = Field(description="Validated manifest as stored by the service.")
+    checksum: ChecksumResponse = Field(description="Checksum metadata for integrity checks.")
+    artifact_ref: ArtifactRefResponse = Field(
+        description="Backend-agnostic reference used to stream the immutable artifact.",
+    )
+    published_at: datetime = Field(description="UTC timestamp when the version was published.")
+
+
+class SkillFetchBatchRequest(BaseModel):
+    """Ordered batch request for exact immutable version metadata reads."""
+
+    coordinates: list[ExactSkillCoordinateRequest] = Field(
+        min_length=1,
+        max_length=MAX_BATCH_ITEMS,
+        description="Ordered immutable coordinates to read exactly.",
+    )
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class SkillFetchBatchItemResponse(BaseModel):
+    """One ordered exact metadata batch result."""
+
+    status: BatchItemStatus = Field(description="Whether the requested coordinate was found.")
+    coordinate: ExactSkillCoordinateRequest = Field(
+        description="Exact immutable coordinate as requested by the client."
+    )
+    version: ExactSkillVersionResponse | None = Field(
+        default=None,
+        description="Returned immutable version metadata when the coordinate exists.",
+    )
+
+
+class SkillFetchBatchResponse(BaseModel):
+    """Ordered batch response for exact immutable metadata reads."""
+
+    results: list[SkillFetchBatchItemResponse] = Field(
+        description="Ordered per-coordinate fetch results preserving request order.",
+    )
+
+
+class RelationshipSelectorResponse(BaseModel):
+    """Authored relationship selector preserved from the immutable manifest."""
+
+    skill_id: str = Field(
+        min_length=1,
+        max_length=128,
+        pattern=SKILL_ID_PATTERN,
+        description="Stable identifier of the related skill.",
+    )
+    version: str | None = Field(
+        default=None,
+        pattern=SEMVER_PATTERN,
+        description="Exact related version when the relationship targets one immutable version.",
+    )
+    version_constraint: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=200,
+        description="Authored dependency constraint when the relationship is version-ranged.",
+    )
+    optional: bool | None = Field(
+        default=None,
+        description="Optional dependency marker preserved as authored.",
+    )
+    markers: list[str] | None = Field(
+        default=None,
+        description="Execution markers preserved exactly as authored.",
+    )
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class RelatedSkillVersionSummaryResponse(BaseModel):
+    """Compact exact target summary for direct relationships with exact selectors."""
+
+    skill_id: str = Field(description="Stable identifier of the related skill.")
+    version: str = Field(description="Exact immutable semantic version of the related skill.")
+    name: str = Field(description="Human-readable skill name.")
+    description: str | None = Field(description="Optional human-readable summary.")
+    tags: list[str] = Field(description="Searchable tags attached to the related version.")
+    published_at: datetime = Field(
+        description="UTC timestamp when the related version was published."
+    )
+
+
+class SkillRelationshipEdgeResponse(BaseModel):
+    """One direct authored relationship edge from an immutable source version."""
+
+    edge_type: RelationshipEdgeType = Field(
+        description="Relationship family preserved from the manifest."
+    )
+    selector: RelationshipSelectorResponse = Field(
+        description="Authored selector preserved exactly from the immutable manifest."
+    )
+    target_version: RelatedSkillVersionSummaryResponse | None = Field(
+        default=None,
+        description=(
+            "Optional exact target version summary when the selector points to one exact version."
+        ),
+    )
+
+
+class SkillRelationshipBatchRequest(BaseModel):
+    """Ordered direct relationship query over immutable source versions."""
+
+    coordinates: list[ExactSkillCoordinateRequest] = Field(
+        min_length=1,
+        max_length=MAX_BATCH_ITEMS,
+        description="Ordered immutable source coordinates to inspect.",
+    )
+    edge_types: list[RelationshipEdgeType] = Field(
+        default_factory=lambda: ["depends_on", "extends"],
+        description="Relationship families to include. Defaults to `depends_on` and `extends`.",
+    )
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class SkillRelationshipBatchItemResponse(BaseModel):
+    """One ordered direct relationship lookup result."""
+
+    status: BatchItemStatus = Field(
+        description="Whether the requested source coordinate was found."
+    )
+    coordinate: ExactSkillCoordinateRequest = Field(
+        description="Exact immutable source coordinate as requested by the client."
+    )
+    relationships: list[SkillRelationshipEdgeResponse] | None = Field(
+        default=None,
+        description="Direct authored relationships for the source version when it exists.",
+    )
+
+
+class SkillRelationshipBatchResponse(BaseModel):
+    """Ordered batch response for direct immutable relationship reads."""
+
+    results: list[SkillRelationshipBatchItemResponse] = Field(
+        description="Ordered per-source relationship results preserving request order.",
+    )
+
+
+class SkillSearchRequest(BaseModel):
+    """Validated query shape for advisory search requests."""
+
+    q: str | None = Field(
+        default=None,
+        description=(
+            "Optional full-text query over skill identifiers, names, tags, and descriptions."
+        ),
+    )
+    tags: list[str] = Field(
+        default_factory=list,
+        description="Repeated tag filters. Every provided tag must be present on a result.",
+    )
+    language: str | None = Field(
+        default=None,
+        description="Convenience alias for filtering by a language tag.",
+    )
+    fresh_within_days: int | None = Field(
+        default=None,
+        ge=0,
+        description="Optional upper bound on skill freshness in whole days since publication.",
+    )
+    max_footprint_bytes: int | None = Field(
+        default=None,
+        ge=0,
+        description="Optional maximum artifact size in bytes.",
+    )
+    limit: int = Field(
+        default=20,
+        ge=1,
+        le=50,
+        description="Maximum number of compact candidates to return.",
+    )
+
+    @field_validator("q", "language")
+    @classmethod
+    def normalize_optional_text(cls, value: str | None) -> str | None:
+        """Trim empty strings down to null so selector validation is stable."""
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None
+
+    @field_validator("tags")
+    @classmethod
+    def normalize_tags(cls, value: list[str]) -> list[str]:
+        """Drop empty tag strings while preserving authored order."""
+        return [item.strip() for item in value if item.strip()]
+
+    @model_validator(mode="after")
+    def validate_has_selector(self) -> SkillSearchRequest:
+        """Require at least one discovery selector for server-side search."""
+        if (
+            self.q is None
+            and not self.tags
+            and self.language is None
+            and self.fresh_within_days is None
+            and self.max_footprint_bytes is None
+        ):
+            raise ValueError("At least one search selector must be provided.")
+        return self
+
+
+class SkillSearchResultResponse(BaseModel):
+    """Compact advisory candidate returned by the search API."""
+
+    skill_id: str = Field(description="Stable identifier of the matched skill.")
+    version: str = Field(description="Best matching immutable version for this skill.")
+    name: str = Field(description="Human-readable skill name.")
+    description: str | None = Field(description="Optional short skill description.")
+    tags: list[str] = Field(description="Searchable tags attached to the matched version.")
+    published_at: datetime = Field(description="UTC timestamp when the version was published.")
+    freshness_days: int = Field(description="Whole days since the version was published.")
+    footprint_bytes: int = Field(
+        description="Artifact size used for compact filtering and ranking."
+    )
+    usage_count: int = Field(description="Derived usage metric reserved for future ranking inputs.")
+    matched_fields: list[str] = Field(
+        description="Fields that contributed to the candidate match explanation.",
+    )
+    matched_tags: list[str] = Field(
+        description="Normalized tag filters satisfied by this result.",
+    )
+    reasons: list[str] = Field(
+        description="Stable advisory ranking hints describing why the result matched.",
+    )
+
+
+class SkillSearchResponse(BaseModel):
+    """Compact advisory search response."""
+
+    results: list[SkillSearchResultResponse] = Field(
+        description="One compact candidate per skill identifier in deterministic order.",
     )

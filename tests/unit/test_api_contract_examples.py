@@ -10,6 +10,8 @@ from app.interface.dto.errors import ErrorEnvelope
 from app.interface.dto.examples import (
     ARTIFACT_STORAGE_FAILURE_ERROR_EXAMPLE,
     DUPLICATE_SKILL_VERSION_ERROR_EXAMPLE,
+    EXACT_FETCH_SUCCESS_EXAMPLE,
+    FETCH_BATCH_SUCCESS_EXAMPLE,
     FETCH_SUCCESS_EXAMPLE,
     INTEGRITY_CHECK_FAILED_ERROR_EXAMPLE,
     INVALID_MANIFEST_ERROR_EXAMPLE,
@@ -17,10 +19,17 @@ from app.interface.dto.examples import (
     LIST_SUCCESS_EXAMPLE,
     PUBLISH_MANIFEST_EXAMPLE,
     PUBLISH_SUCCESS_EXAMPLE,
+    RELATIONSHIP_BATCH_SUCCESS_EXAMPLE,
+    SEARCH_INVALID_REQUEST_ERROR_EXAMPLE,
+    SEARCH_SUCCESS_EXAMPLE,
     SKILL_VERSION_NOT_FOUND_ERROR_EXAMPLE,
 )
 from app.interface.dto.skills import (
+    ExactSkillVersionResponse,
+    SkillFetchBatchResponse,
     SkillManifest,
+    SkillRelationshipBatchResponse,
+    SkillSearchResponse,
     SkillVersionDetailResponse,
     SkillVersionFetchResponse,
     SkillVersionListResponse,
@@ -41,7 +50,11 @@ def test_publish_manifest_example_matches_request_contract() -> None:
     [
         (PUBLISH_SUCCESS_EXAMPLE, SkillVersionDetailResponse),
         (FETCH_SUCCESS_EXAMPLE, SkillVersionFetchResponse),
+        (EXACT_FETCH_SUCCESS_EXAMPLE, ExactSkillVersionResponse),
+        (FETCH_BATCH_SUCCESS_EXAMPLE, SkillFetchBatchResponse),
         (LIST_SUCCESS_EXAMPLE, SkillVersionListResponse),
+        (SEARCH_SUCCESS_EXAMPLE, SkillSearchResponse),
+        (RELATIONSHIP_BATCH_SUCCESS_EXAMPLE, SkillRelationshipBatchResponse),
     ],
 )
 def test_success_examples_match_response_contracts(
@@ -63,6 +76,7 @@ def test_success_examples_match_response_contracts(
         SKILL_VERSION_NOT_FOUND_ERROR_EXAMPLE,
         INTEGRITY_CHECK_FAILED_ERROR_EXAMPLE,
         ARTIFACT_STORAGE_FAILURE_ERROR_EXAMPLE,
+        SEARCH_INVALID_REQUEST_ERROR_EXAMPLE,
     ],
 )
 def test_error_examples_match_error_envelope_contract(payload: dict[str, object]) -> None:

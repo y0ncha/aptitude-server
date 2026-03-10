@@ -56,13 +56,13 @@ Implemented now:
 - Immutable publish API for skill manifest + artifact
 - Exact fetch by `skill_id` and `version`
 - Version listing per skill
+- Indexed advisory search over metadata and descriptions
 - Checksum verification on artifact reads
 - PostgreSQL-backed metadata persistence and filesystem artifact storage
 - Direct dependency declaration validation and retrieval
 
 Planned next:
 
-- Search and candidate retrieval APIs
 - Richer governance and lifecycle controls
 - Discovery metadata and evaluation signals
 
@@ -73,16 +73,13 @@ Available endpoints today:
 - `GET /healthz`
 - `GET /readyz`
 - `POST /skills/publish`
+- `GET /skills/search`
 - `GET /skills/{skill_id}/{version}`
 - `GET /skills/{skill_id}`
 
-Planned but not yet implemented:
-
-- `GET /skills/search`
-
-Search remains a future discovery API for candidate generation only. When it is
-added, prompt interpretation, reranking, final selection, dependency solving,
-and execution planning will remain client-owned responsibilities.
+`GET /skills/search` is a discovery API for candidate generation only. Prompt
+interpretation, reranking, final selection, dependency solving, and execution
+planning remain client-owned responsibilities.
 
 When the service is running locally, OpenAPI docs are available at
 `http://127.0.0.1:8000/docs`.

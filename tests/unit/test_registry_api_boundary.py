@@ -9,7 +9,13 @@ from app.main import create_app
 _EXPECTED_PUBLIC_PATHS = {
     "/healthz",
     "/readyz",
+    "/discovery/skills/search",
+    "/resolution/relationships:batch",
+    "/fetch/skill-versions:batch",
+    "/fetch/skills/{skill_id}/{version}",
+    "/fetch/skills/{skill_id}/{version}/artifact",
     "/skills/publish",
+    "/skills/search",
     "/skills/{skill_id}/{version}",
     "/skills/{skill_id}",
 }

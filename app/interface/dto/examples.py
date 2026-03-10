@@ -49,6 +49,35 @@ FETCH_SUCCESS_EXAMPLE = {
     "artifact_base64": "YmluYXJ5LWFydGlmYWN0",
 }
 
+EXACT_FETCH_SUCCESS_EXAMPLE = {
+    "skill_id": "python.lint",
+    "version": "1.2.3",
+    "manifest": PUBLISH_MANIFEST_EXAMPLE,
+    "checksum": PUBLISH_SUCCESS_EXAMPLE["checksum"],
+    "artifact_ref": {
+        "checksum_algorithm": "sha256",
+        "checksum_digest": "c3ab8ff13720e8ad9047dd39466b3c8974e592c2fa383d4a3960714caef0c4f2",
+        "size_bytes": 123,
+        "download_path": "/fetch/skills/python.lint/1.2.3/artifact",
+    },
+    "published_at": "2026-03-10T08:30:00Z",
+}
+
+FETCH_BATCH_SUCCESS_EXAMPLE = {
+    "results": [
+        {
+            "status": "found",
+            "coordinate": {"skill_id": "python.lint", "version": "1.2.3"},
+            "version": EXACT_FETCH_SUCCESS_EXAMPLE,
+        },
+        {
+            "status": "not_found",
+            "coordinate": {"skill_id": "python.missing", "version": "9.9.9"},
+            "version": None,
+        },
+    ]
+}
+
 LIST_SUCCESS_EXAMPLE = {
     "skill_id": "python.lint",
     "versions": [
@@ -82,6 +111,66 @@ LIST_SUCCESS_EXAMPLE = {
     ],
 }
 
+SEARCH_SUCCESS_EXAMPLE = {
+    "results": [
+        {
+            "skill_id": "python.lint",
+            "version": "1.2.3",
+            "name": "Python Lint",
+            "description": "Linting skill",
+            "tags": ["python", "lint"],
+            "published_at": "2026-03-10T08:30:00Z",
+            "freshness_days": 0,
+            "footprint_bytes": 123,
+            "usage_count": 0,
+            "matched_fields": ["name", "tags"],
+            "matched_tags": ["python"],
+            "reasons": ["text_match", "tag_filter_match"],
+        }
+    ]
+}
+
+RELATIONSHIP_BATCH_SUCCESS_EXAMPLE = {
+    "results": [
+        {
+            "status": "found",
+            "coordinate": {"skill_id": "python.lint", "version": "1.2.3"},
+            "relationships": [
+                {
+                    "edge_type": "depends_on",
+                    "selector": {
+                        "skill_id": "python.base",
+                        "version_constraint": ">=1.0.0,<2.0.0",
+                        "optional": True,
+                        "markers": ["linux", "gpu"],
+                    },
+                    "target_version": None,
+                },
+                {
+                    "edge_type": "extends",
+                    "selector": {
+                        "skill_id": "python.base",
+                        "version": "1.0.0",
+                    },
+                    "target_version": {
+                        "skill_id": "python.base",
+                        "version": "1.0.0",
+                        "name": "Python Base",
+                        "description": "Base runtime skill",
+                        "tags": ["python", "runtime"],
+                        "published_at": "2026-03-01T08:30:00Z",
+                    },
+                },
+            ],
+        },
+        {
+            "status": "not_found",
+            "coordinate": {"skill_id": "python.missing", "version": "9.9.9"},
+            "relationships": None,
+        },
+    ]
+}
+
 INVALID_REQUEST_ERROR_EXAMPLE = {
     "error": {
         "code": "INVALID_REQUEST",
@@ -93,6 +182,30 @@ INVALID_REQUEST_ERROR_EXAMPLE = {
                     "loc": ["path", "version"],
                     "msg": "String should match pattern",
                     "input": "latest",
+                }
+            ]
+        },
+    }
+}
+
+SEARCH_INVALID_REQUEST_ERROR_EXAMPLE = {
+    "error": {
+        "code": "INVALID_REQUEST",
+        "message": "Search request validation failed.",
+        "details": {
+            "errors": [
+                {
+                    "type": "value_error",
+                    "loc": [],
+                    "msg": "Value error, At least one search selector must be provided.",
+                    "input": {
+                        "q": None,
+                        "tags": [],
+                        "language": None,
+                        "fresh_within_days": None,
+                        "max_footprint_bytes": None,
+                        "limit": 20,
+                    },
                 }
             ]
         },

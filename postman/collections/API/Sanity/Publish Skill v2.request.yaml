@@ -1,5 +1,4 @@
 $kind: http-request
-name: Publish Skill v2
 order: 4000
 
 method: POST

@@ -2,30 +2,154 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import BigInteger, DateTime, Integer, Text, bindparam, select, text, tuple_
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.ports import (
     ChecksumExpectation,
+    ExactSkillCoordinate,
+    SearchCandidatesRequest,
     SkillRegistryPersistenceError,
     SkillRegistryPort,
+    SkillRelationshipReadPort,
+    SkillSearchPort,
+    SkillVersionReadPort,
+    StoredSkillRelationshipSource,
+    StoredSkillSearchCandidate,
     StoredSkillVersion,
     StoredSkillVersionSummary,
 )
 from app.core.skill_registry import DuplicateSkillVersionError
 from app.persistence.models.skill import Skill
 from app.persistence.models.skill_relationship_edge import SkillRelationshipEdge
+from app.persistence.models.skill_search_document import SkillSearchDocument
 from app.persistence.models.skill_version import SkillVersion
 from app.persistence.models.skill_version_checksum import SkillVersionChecksum
 
 _RELATIONSHIP_TYPES = ("depends_on", "extends")
+_SEARCH_CANDIDATES_SQL = text(
+    """
+    WITH filtered AS (
+        SELECT
+            doc.skill_version_fk,
+            doc.skill_id,
+            doc.version,
+            doc.name,
+            doc.description,
+            doc.tags,
+            doc.published_at,
+            doc.artifact_size_bytes,
+            doc.usage_count,
+            CASE
+                WHEN :query_text IS NOT NULL AND doc.normalized_skill_id = :query_text THEN TRUE
+                ELSE FALSE
+            END AS exact_skill_id_match,
+            CASE
+                WHEN :query_text IS NOT NULL AND doc.normalized_name = :query_text THEN TRUE
+                ELSE FALSE
+            END AS exact_name_match,
+            CASE
+                WHEN :query_text IS NOT NULL THEN ts_rank_cd(
+                    doc.search_vector,
+                    plainto_tsquery('simple'::regconfig, :query_text)
+                )
+                ELSE 0.0
+            END AS lexical_score,
+            CASE
+                WHEN :required_tag_count > 0 THEN (
+                    SELECT COUNT(*)
+                    FROM unnest(doc.normalized_tags) AS tag
+                    WHERE tag = ANY(:required_tags)
+                )
+                ELSE 0
+            END AS tag_overlap_count
+        FROM skill_search_documents AS doc
+        WHERE (
+            :query_text IS NULL
+            OR doc.search_vector @@ plainto_tsquery('simple'::regconfig, :query_text)
+            OR doc.normalized_skill_id = :query_text
+            OR doc.normalized_name = :query_text
+        )
+          AND (
+            :required_tag_count = 0
+            OR doc.normalized_tags @> :required_tags
+          )
+          AND (
+            :published_after IS NULL
+            OR doc.published_at >= :published_after
+          )
+          AND (
+            :max_footprint_bytes IS NULL
+            OR doc.artifact_size_bytes <= :max_footprint_bytes
+          )
+    ),
+    ranked AS (
+        SELECT
+            filtered.*,
+            ROW_NUMBER() OVER (
+                PARTITION BY filtered.skill_id
+                ORDER BY
+                    filtered.exact_skill_id_match DESC,
+                    filtered.exact_name_match DESC,
+                    filtered.lexical_score DESC,
+                    filtered.tag_overlap_count DESC,
+                    filtered.usage_count DESC,
+                    filtered.published_at DESC,
+                    filtered.artifact_size_bytes ASC,
+                    filtered.skill_id ASC,
+                    filtered.skill_version_fk DESC
+            ) AS skill_rank
+        FROM filtered
+    )
+    SELECT
+        skill_version_fk,
+        skill_id,
+        version,
+        name,
+        description,
+        tags,
+        published_at,
+        artifact_size_bytes,
+        usage_count,
+        exact_skill_id_match,
+        exact_name_match,
+        lexical_score,
+        tag_overlap_count
+    FROM ranked
+    WHERE skill_rank = 1
+    ORDER BY
+        exact_skill_id_match DESC,
+        exact_name_match DESC,
+        lexical_score DESC,
+        tag_overlap_count DESC,
+        usage_count DESC,
+        published_at DESC,
+        artifact_size_bytes ASC,
+        skill_id ASC,
+        skill_version_fk DESC
+    LIMIT :limit
+    """
+).bindparams(
+    bindparam("query_text", type_=Text()),
+    bindparam("required_tags", type_=ARRAY(Text())),
+    bindparam("required_tag_count", type_=Integer()),
+    bindparam("published_after", type_=DateTime(timezone=True)),
+    bindparam("max_footprint_bytes", type_=BigInteger()),
+    bindparam("limit", type_=Integer()),
+)
 
 
-class SQLAlchemySkillRegistryRepository(SkillRegistryPort):
+class SQLAlchemySkillRegistryRepository(
+    SkillRegistryPort,
+    SkillVersionReadPort,
+    SkillSearchPort,
+    SkillRelationshipReadPort,
+):
     """SQLAlchemy implementation for immutable skill catalog persistence."""
 
     def __init__(self, session_factory: sessionmaker[Session]) -> None:
@@ -64,11 +188,20 @@ class SQLAlchemySkillRegistryRepository(SkillRegistryPort):
                 )
                 session.add(skill_version)
                 session.flush()
+                session.refresh(skill_version, attribute_names=["published_at"])
 
                 session.add_all(
                     _build_relationship_edges(
                         source_skill_version_id=skill_version.id,
                         manifest_json=manifest_json,
+                    )
+                )
+                session.add(
+                    _build_search_document(
+                        skill_version_id=skill_version.id,
+                        manifest_json=manifest_json,
+                        artifact_size_bytes=artifact_size_bytes,
+                        published_at=skill_version.published_at,
                     )
                 )
 
@@ -100,6 +233,7 @@ class SQLAlchemySkillRegistryRepository(SkillRegistryPort):
         with self._session_factory() as session:
             statement = (
                 select(SkillVersion, SkillVersionChecksum)
+                .select_from(SkillVersion)
                 .join(Skill, Skill.id == SkillVersion.skill_fk)
                 .join(
                     SkillVersionChecksum,
@@ -113,6 +247,66 @@ class SQLAlchemySkillRegistryRepository(SkillRegistryPort):
 
             skill_version, checksum = row
             return _to_stored_skill_version(skill_version=skill_version, checksum=checksum)
+
+    def get_versions_batch(
+        self,
+        *,
+        coordinates: tuple[ExactSkillCoordinate, ...],
+    ) -> tuple[StoredSkillVersion, ...]:
+        if not coordinates:
+            return ()
+
+        coordinate_pairs = [(item.skill_id, item.version) for item in coordinates]
+        with self._session_factory() as session:
+            statement = (
+                select(SkillVersion, SkillVersionChecksum)
+                .join(Skill, Skill.id == SkillVersion.skill_fk)
+                .join(
+                    SkillVersionChecksum,
+                    SkillVersionChecksum.skill_version_fk == SkillVersion.id,
+                )
+                .where(tuple_(Skill.skill_id, SkillVersion.version).in_(coordinate_pairs))
+            )
+            rows = session.execute(statement).all()
+            return tuple(
+                _to_stored_skill_version(skill_version=skill_version, checksum=checksum)
+                for skill_version, checksum in rows
+            )
+
+    def get_version_summaries_batch(
+        self,
+        *,
+        coordinates: tuple[ExactSkillCoordinate, ...],
+    ) -> tuple[StoredSkillVersionSummary, ...]:
+        if not coordinates:
+            return ()
+
+        coordinate_pairs = [(item.skill_id, item.version) for item in coordinates]
+        with self._session_factory() as session:
+            statement = (
+                select(SkillVersion, SkillVersionChecksum, Skill.skill_id)
+                .select_from(SkillVersion)
+                .join(Skill, Skill.id == SkillVersion.skill_fk)
+                .join(
+                    SkillVersionChecksum,
+                    SkillVersionChecksum.skill_version_fk == SkillVersion.id,
+                )
+                .where(tuple_(Skill.skill_id, SkillVersion.version).in_(coordinate_pairs))
+            )
+            rows = session.execute(statement).all()
+            return tuple(
+                StoredSkillVersionSummary(
+                    skill_id=str(skill_id),
+                    version=skill_version.version,
+                    manifest_json=_ensure_manifest_dict(skill_version.manifest_json),
+                    artifact_relative_path=skill_version.artifact_rel_path,
+                    artifact_size_bytes=skill_version.artifact_size_bytes,
+                    checksum_algorithm=checksum.algorithm,
+                    checksum_digest=checksum.digest,
+                    published_at=skill_version.published_at,
+                )
+                for skill_version, checksum, skill_id in rows
+            )
 
     def list_versions(self, *, skill_id: str) -> tuple[StoredSkillVersionSummary, ...]:
         with self._session_factory() as session:
@@ -139,6 +333,78 @@ class SQLAlchemySkillRegistryRepository(SkillRegistryPort):
                     published_at=skill_version.published_at,
                 )
                 for skill_version, checksum in rows
+            )
+
+    def get_relationship_sources_batch(
+        self,
+        *,
+        coordinates: tuple[ExactSkillCoordinate, ...],
+    ) -> tuple[StoredSkillRelationshipSource, ...]:
+        if not coordinates:
+            return ()
+
+        coordinate_pairs = [(item.skill_id, item.version) for item in coordinates]
+        with self._session_factory() as session:
+            statement = (
+                select(
+                    Skill.skill_id,
+                    SkillVersion.version,
+                    SkillVersion.manifest_json,
+                    SkillVersion.published_at,
+                )
+                .select_from(SkillVersion)
+                .join(Skill, Skill.id == SkillVersion.skill_fk)
+                .where(tuple_(Skill.skill_id, SkillVersion.version).in_(coordinate_pairs))
+            )
+            rows = session.execute(statement).all()
+            return tuple(
+                StoredSkillRelationshipSource(
+                    skill_id=str(skill_id),
+                    version=str(version),
+                    manifest_json=_ensure_manifest_dict(manifest_json),
+                    published_at=_ensure_datetime(published_at),
+                )
+                for skill_id, version, manifest_json, published_at in rows
+            )
+
+    def search_candidates(
+        self,
+        *,
+        request: SearchCandidatesRequest,
+    ) -> tuple[StoredSkillSearchCandidate, ...]:
+        published_after = None
+        if request.fresh_within_days is not None:
+            published_after = datetime.now(UTC) - timedelta(days=request.fresh_within_days)
+
+        with self._session_factory() as session:
+            rows = session.execute(
+                _SEARCH_CANDIDATES_SQL,
+                {
+                    "query_text": request.query_text,
+                    "required_tags": list(request.required_tags),
+                    "required_tag_count": len(request.required_tags),
+                    "published_after": published_after,
+                    "max_footprint_bytes": request.max_footprint_bytes,
+                    "limit": request.limit,
+                },
+            ).mappings()
+            return tuple(
+                StoredSkillSearchCandidate(
+                    skill_version_fk=int(row["skill_version_fk"]),
+                    skill_id=str(row["skill_id"]),
+                    version=str(row["version"]),
+                    name=str(row["name"]),
+                    description=str(row["description"]) if row["description"] is not None else None,
+                    tags=tuple(_ensure_string_list(row["tags"])),
+                    published_at=_ensure_datetime(row["published_at"]),
+                    artifact_size_bytes=int(row["artifact_size_bytes"]),
+                    usage_count=int(row["usage_count"]),
+                    exact_skill_id_match=bool(row["exact_skill_id_match"]),
+                    exact_name_match=bool(row["exact_name_match"]),
+                    lexical_score=float(row["lexical_score"]),
+                    tag_overlap_count=int(row["tag_overlap_count"]),
+                )
+                for row in rows
             )
 
     @staticmethod
@@ -169,6 +435,35 @@ def _to_stored_skill_version(
         checksum_algorithm=checksum.algorithm,
         checksum_digest=checksum.digest,
         published_at=_ensure_datetime(skill_version.published_at),
+    )
+
+
+def _build_search_document(
+    *,
+    skill_version_id: int,
+    manifest_json: dict[str, Any],
+    artifact_size_bytes: int,
+    published_at: datetime | None,
+) -> SkillSearchDocument:
+    skill_id = str(manifest_json["skill_id"])
+    name = str(manifest_json.get("name") or skill_id)
+    description = manifest_json.get("description")
+    raw_tags = manifest_json.get("tags")
+    tags = _ensure_string_list(raw_tags) if isinstance(raw_tags, list) else []
+
+    return SkillSearchDocument(
+        skill_version_fk=skill_version_id,
+        skill_id=skill_id,
+        normalized_skill_id=_normalize_text(skill_id),
+        version=str(manifest_json["version"]),
+        name=name,
+        normalized_name=_normalize_text(name),
+        description=str(description) if isinstance(description, str) else None,
+        tags=tags,
+        normalized_tags=sorted({_normalize_text(tag) for tag in tags if tag.strip()}),
+        published_at=_ensure_datetime(published_at),
+        artifact_size_bytes=artifact_size_bytes,
+        usage_count=0,
     )
 
 
@@ -237,7 +532,19 @@ def _ensure_manifest_dict(raw: object) -> dict[str, Any]:
     raise SkillRegistryPersistenceError("Skill manifest payload is not a dictionary.")
 
 
+def _ensure_string_list(raw: object) -> list[str]:
+    if not isinstance(raw, list):
+        raise SkillRegistryPersistenceError("Expected a list of strings.")
+    if not all(isinstance(item, str) for item in raw):
+        raise SkillRegistryPersistenceError("Expected a list of strings.")
+    return [str(item) for item in raw]
+
+
 def _ensure_datetime(value: datetime | None) -> datetime:
     if value is None:
         raise SkillRegistryPersistenceError("Published timestamp is missing.")
     return value
+
+
+def _normalize_text(value: str) -> str:
+    return " ".join(value.split()).strip().lower()

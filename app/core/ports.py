@@ -8,6 +8,14 @@ from typing import Any, Protocol
 
 
 @dataclass(frozen=True, slots=True)
+class ExactSkillCoordinate:
+    """Exact immutable skill-version selector used by fetch and resolution reads."""
+
+    skill_id: str
+    version: str
+
+
+@dataclass(frozen=True, slots=True)
 class ArtifactWriteResult:
     """Details about a newly persisted immutable artifact."""
 
@@ -41,6 +49,46 @@ class StoredSkillVersionSummary:
     checksum_algorithm: str
     checksum_digest: str
     published_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class StoredSkillRelationshipSource:
+    """Relationship source projection backed by immutable stored manifest data."""
+
+    skill_id: str
+    version: str
+    manifest_json: dict[str, Any]
+    published_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class SearchCandidatesRequest:
+    """Normalized discovery request sent to the persistence search adapter."""
+
+    query_text: str | None
+    required_tags: tuple[str, ...]
+    fresh_within_days: int | None
+    max_footprint_bytes: int | None
+    limit: int
+
+
+@dataclass(frozen=True, slots=True)
+class StoredSkillSearchCandidate:
+    """Persistence projection for one ranked search candidate."""
+
+    skill_version_fk: int
+    skill_id: str
+    version: str
+    name: str
+    description: str | None
+    tags: tuple[str, ...]
+    published_at: datetime
+    artifact_size_bytes: int
+    usage_count: int
+    exact_skill_id_match: bool
+    exact_name_match: bool
+    lexical_score: float
+    tag_overlap_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,7 +134,57 @@ class SkillRegistryPort(Protocol):
         """Return deterministic summaries for all versions of a skill."""
 
 
-class ArtifactStorePort(Protocol):
+class SkillVersionReadPort(Protocol):
+    """Read-only persistence contract for exact immutable version metadata."""
+
+    def get_version(self, *, skill_id: str, version: str) -> StoredSkillVersion | None:
+        """Return a specific immutable version, if present."""
+
+    def get_versions_batch(
+        self,
+        *,
+        coordinates: tuple[ExactSkillCoordinate, ...],
+    ) -> tuple[StoredSkillVersion, ...]:
+        """Return exact immutable versions for the requested coordinates."""
+
+    def get_version_summaries_batch(
+        self,
+        *,
+        coordinates: tuple[ExactSkillCoordinate, ...],
+    ) -> tuple[StoredSkillVersionSummary, ...]:
+        """Return summaries for exact immutable version coordinates."""
+
+
+class SkillSearchPort(Protocol):
+    """Persistence contract for advisory search candidate retrieval."""
+
+    def search_candidates(
+        self,
+        *,
+        request: SearchCandidatesRequest,
+    ) -> tuple[StoredSkillSearchCandidate, ...]:
+        """Return ranked skill candidates for the provided discovery request."""
+
+
+class SkillRelationshipReadPort(Protocol):
+    """Read-only persistence contract for direct relationship source lookup."""
+
+    def get_relationship_sources_batch(
+        self,
+        *,
+        coordinates: tuple[ExactSkillCoordinate, ...],
+    ) -> tuple[StoredSkillRelationshipSource, ...]:
+        """Return stored relationship sources for the requested coordinates."""
+
+
+class ArtifactReadPort(Protocol):
+    """Read-only artifact access contract used by exact fetch services."""
+
+    def read_artifact(self, *, relative_path: str) -> bytes:
+        """Read immutable artifact bytes by relative path."""
+
+
+class ArtifactStorePort(ArtifactReadPort, Protocol):
     """Storage contract for immutable artifact file handling."""
 
     def store_immutable_artifact(
@@ -98,9 +196,6 @@ class ArtifactStorePort(Protocol):
         manifest_json: dict[str, Any],
     ) -> ArtifactWriteResult:
         """Persist artifact and manifest snapshot under immutable paths."""
-
-    def read_artifact(self, *, relative_path: str) -> bytes:
-        """Read immutable artifact bytes by relative path."""
 
 
 class AuditPort(Protocol):
