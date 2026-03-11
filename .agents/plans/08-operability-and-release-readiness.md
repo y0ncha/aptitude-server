@@ -1,7 +1,7 @@
 # Plan 08 — Operability and Release Readiness
 
 ## Goal
-Harden the repository service for reliable operation, auditing, and repeatable deployment.
+Harden `aptitude-server` for reliable operation, auditing, and repeatable deployment.
 
 ## Stack Alignment
 - Runtime: Python 3.12+
@@ -15,11 +15,12 @@ Harden the repository service for reliable operation, auditing, and repeatable d
 - Add metrics endpoint and baseline instrumentation.
 - Add Docker packaging and CI quality gates.
 - Add SLO instrumentation aligned to `prd.md` for exact-read latency, discovery search latency, and fetch reliability.
+- Add runbooks and alerts that assume PostgreSQL-only split metadata/artifact storage and immutable HTTP cache semantics, not filesystem or object-storage backends.
 
 ## Architecture Impact
 - Strengthens observability and audit layer.
 - Adds deployment and quality infrastructure without changing domain invariants.
-- Prepares server contracts for independent resolver release trains.
+- Prepares server contracts for independent client release trains without widening the server boundary.
 
 ## Deliverables
 - Structured logging conventions and correlation ID propagation.
@@ -27,6 +28,7 @@ Harden the repository service for reliable operation, auditing, and repeatable d
 - Dockerfile and local run instructions.
 - CI pipeline stages for unit, integration, lint, type-check, and coverage threshold.
 - Operational runbook for publish/read/governance incident response.
+- Dashboards and alerts that distinguish discovery metadata queries from exact artifact fetches within the same PostgreSQL-backed system.
 - Learning note on reliability and observability tradeoffs.
 
 ## Acceptance Criteria
@@ -37,6 +39,7 @@ Harden the repository service for reliable operation, auditing, and repeatable d
 - Read SLO instrumentation is present for `GET /skills/{id}/{version}` p95 <= 150 ms.
 - Search latency instrumentation is present for `GET /skills/search` so agent workflows can treat discovery as an interactive primitive.
 - Artifact fetch reliability instrumentation is present for monthly target >= 99.9%.
+- Operability assumptions do not depend on any filesystem or object-storage artifact backend.
 
 ## Test Plan
 - End-to-end integration test for publish -> fetch -> search -> lifecycle update.

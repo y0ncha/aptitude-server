@@ -1,9 +1,9 @@
-# Plan 10 - Hybrid Artifact Storage and Git Provenance
+# Plan 10 - PostgreSQL Artifact Storage and Git Provenance
 
 Legacy filename retained under the append-only roadmap rule. This plan now reflects the PostgreSQL split-table storage decision.
 
 ## Goal
-Keep PostgreSQL authoritative for registry metadata and immutable artifact payloads, with optional Git provenance captured for authoring traceability rather than runtime reads.
+Keep PostgreSQL authoritative for registry metadata, digest mappings, and immutable artifact payloads, with optional Git provenance captured only for authoring traceability and audit.
 
 ## Stack Alignment
 - Runtime: Python 3.12+
@@ -17,24 +17,25 @@ Keep PostgreSQL authoritative for registry metadata and immutable artifact paylo
 - Store artifact bytes in a dedicated PostgreSQL payload table instead of a filesystem or object-store backend.
 - Add content-addressed artifact metadata so identical payloads can reuse the same stored row while preserving immutable version bindings.
 - Capture optional publish provenance fields such as `repo_url`, `commit_sha`, and `tree_path` without making Git a required dependency for fetch/search flows.
-- Preserve immutable HTTP cache semantics (`ETag`, conditional reads) and resolver ownership boundaries.
+- Preserve immutable HTTP cache semantics (`ETag`, conditional reads) and client ownership boundaries.
+- Explicitly reject hybrid runtime storage for the current phase, per `docs/storage-strategy-report.md`.
 
 ## Architecture Impact
 - Simplifies the storage model by keeping one persistence system while still separating discovery-heavy metadata from fetch-heavy payload rows.
 - Preserves deduplication and integrity guarantees while avoiding cross-store consistency risks.
-- Keeps Git in the authoring and publish pipeline, not in the synchronous registry read path.
+- Keeps Git in the authoring and publish pipeline as optional provenance metadata, not in the synchronous registry read path.
 
 ## Deliverables
 - Alembic migration for digest-addressed artifact payload tables and optional Git provenance fields.
 - Repository and service-layer changes so versions bind immutably to digest-addressed PostgreSQL payload rows.
-- API and audit support for provenance metadata on publish and immutable cache headers on fetch.
+- API and audit support for normalized provenance metadata on publish and immutable cache headers on fetch.
 - Learning note on why split-table PostgreSQL storage is the right tradeoff for current artifact sizes and access patterns.
 
 ## Acceptance Criteria
 - Publishing identical artifact content across different versions reuses a single stored payload row while preserving distinct immutable version records.
 - PostgreSQL remains the source of truth for version metadata, artifact payloads, digest mappings, lifecycle state, and audit history.
-- Artifact reads do not require access to a Git repository.
-- Git provenance metadata is optional and, when supplied, is returned as metadata rather than used as a storage backend.
+- Artifact reads do not require access to a Git repository, working tree, filesystem mirror, or object-store mirror.
+- Git provenance metadata is optional and, when supplied, is returned as advisory metadata rather than used as a storage backend or read dependency.
 - Immutable read endpoints return stable `ETag` and `Cache-Control` headers derived from the PostgreSQL-stored payload digest.
 
 ## Test Plan

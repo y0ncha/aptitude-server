@@ -1,7 +1,7 @@
 # Plan 06 — Policy, Conflict, and Governance
 
 ## Goal
-Enforce centralized governance for trust tiers, lifecycle transitions, and conflict/overlap metadata at publish and discovery boundaries.
+Enforce centralized governance for trust tiers, lifecycle transitions, and conflict/overlap metadata at publish and read boundaries over the server's canonical PostgreSQL records.
 
 ## Stack Alignment
 - Runtime: Python 3.12+
@@ -15,13 +15,13 @@ Enforce centralized governance for trust tiers, lifecycle transitions, and confl
 - Implement trust-tier gating and provenance requirements.
 - Implement lifecycle transitions (`published`, `deprecated`, `archived`).
 - Clean up superseded persistence structures created before the normalized PostgreSQL cutover, including legacy compatibility tables and mirror columns that no longer serve runtime reads.
-- Keep policy authority in server for publish/read/search visibility; resolver may apply additional runtime policy interpretation after retrieval.
-- Explicitly avoid server-side overlap winner selection and dependency conflict solving.
+- Keep policy authority in the server for publish, exact-read, and discovery visibility over canonical PostgreSQL metadata and digest bindings; clients may apply stricter runtime policy after retrieval.
+- Explicitly avoid server-side overlap winner selection, dependency conflict solving, or any Git-dependent read behavior.
 
 ## Architecture Impact
 - Strengthens policy engine in core domain.
 - Adds governance controls at server interface boundary.
-- Improves enterprise readiness without coupling repository to runtime solver logic.
+- Improves enterprise readiness without coupling the server to client-side selection or solving logic.
 
 ## Deliverables
 - Policy profile schema and loader.
@@ -38,7 +38,7 @@ Enforce centralized governance for trust tiers, lifecycle transitions, and confl
 - Trust profile restrictions are enforced on publish and privileged updates.
 - Conflict/overlap metadata is persisted and returned deterministically.
 - Legacy tables and columns replaced by normalized storage are either removed or explicitly documented as temporary compatibility state with an exit path.
-- No server-side canonical dependency resolution behavior is introduced.
+- No server-side final candidate selection, dependency resolution, or Git-backed read dependency is introduced.
 
 ## Test Plan
 - Policy allow/deny scenario tests.

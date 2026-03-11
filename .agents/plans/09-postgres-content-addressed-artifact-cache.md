@@ -10,11 +10,11 @@ Improve read performance and storage efficiency by introducing content-addressed
 - Database: PostgreSQL as the source of truth for artifact identity, artifact payloads, and version mapping
 
 ## Scope
-- Introduce split PostgreSQL tables for metadata and payload storage (for example, `skill_versions` plus `artifact_objects` keyed by `sha256_digest`).
-- Map immutable `skill_id+version` records to artifact digest (`skill_versions -> artifact_objects.sha256_digest`).
+- Introduce split PostgreSQL tables for metadata and payload storage (for example, `skill_versions`, `skill_artifacts`, and `skill_version_artifacts` keyed by `sha256_digest`).
+- Map immutable `skill_id+version` records to artifact digests through a dedicated binding table rather than embedding alternate storage pointers.
 - Enforce deterministic digest binding and immutability constraints at publish time.
 - Add HTTP cache behavior for immutable reads (`ETag`, `Cache-Control: immutable`, conditional `If-None-Match` support).
-- Keep resolver ownership boundaries intact (no server-side dependency closure solving).
+- Keep client ownership boundaries intact (no server-side dependency closure solving).
 
 ## Architecture Impact
 - Adds a content-addressed storage layer while preserving existing registry API contracts.
@@ -32,9 +32,10 @@ Improve read performance and storage efficiency by introducing content-addressed
 ## Acceptance Criteria
 - Publishing identical artifact content across different versions reuses a single digest-addressed artifact row.
 - Each immutable `skill_id+version` maps to exactly one digest and cannot be overwritten.
+- Routine discovery and list queries do not need to touch the payload table.
 - Immutable read endpoints return stable `ETag` and `Cache-Control` headers.
 - Requests with matching `If-None-Match` return `304 Not Modified`.
-- Existing registry boundary rules remain unchanged (no resolver-owned semantics added).
+- Existing registry boundary rules remain unchanged (no client-owned semantics added to the server).
 
 ## Test Plan
 - Integration test: publish multiple versions with identical content and verify digest deduplication behavior.
@@ -45,5 +46,5 @@ Improve read performance and storage efficiency by introducing content-addressed
 
 ## Change Note (2026-03-10)
 - This plan is the canonical storage direction for skill artifacts.
-- Retain the digest-addressed identity, deduplication, and immutable HTTP cache semantics from this plan.
+- Retain the digest-addressed identity, deduplication, and immutable HTTP cache semantics from this plan and from `docs/storage-strategy-report.md`.
 - Use PostgreSQL only, with split metadata and payload tables; do not add filesystem or object-storage persistence for current skill artifacts.

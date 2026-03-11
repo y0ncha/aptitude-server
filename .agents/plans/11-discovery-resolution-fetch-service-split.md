@@ -1,4 +1,6 @@
-# Plan 11 - Discovery / Resolution / Fetch Service Split
+# Plan 11 - Discovery / Relationship / Fetch Surface Split
+
+Legacy filename retained under the append-only roadmap rule. This plan does not introduce server-side resolution semantics.
 
 ## Goal
 Make the read side of `aptitude-server` explicit and future-proof by separating discovery, direct relationship reads, and exact fetch behavior into distinct service surfaces without changing the single-process deployment model.
@@ -10,7 +12,7 @@ Make the read side of `aptitude-server` explicit and future-proof by separating 
 - Artifact backend: PostgreSQL split tables for metadata and digest-addressed payload rows
 
 ## Scope
-- Introduce explicit `discovery`, `resolution`, and `fetch` routers and core services.
+- Introduce explicit `discovery`, `relationships`, and `fetch` core services, with compatibility routing where legacy path names still contain `resolution`.
 - Keep discovery advisory and data-local, consistent with plan `05-metadata-search-ranking.md`.
 - Add direct relationship read APIs for authored `depends_on` and `extends` edges only; no transitive traversal or solver behavior.
 - Add exact metadata fetch and artifact streaming APIs with ordered batch reads and PostgreSQL-backed payload retrieval.
@@ -25,7 +27,7 @@ Make the read side of `aptitude-server` explicit and future-proof by separating 
 ## Deliverables
 - New routers:
   - `GET /discovery/skills/search`
-  - `POST /resolution/relationships:batch`
+  - `POST /resolution/relationships:batch` as a legacy compatibility path for direct relationship reads
   - `POST /fetch/skill-versions:batch`
   - `GET /fetch/skills/{skill_id}/{version}`
   - `GET /fetch/skills/{skill_id}/{version}/artifact`
@@ -35,8 +37,9 @@ Make the read side of `aptitude-server` explicit and future-proof by separating 
 
 ## Acceptance Criteria
 - Discovery remains advisory and identical in behavior to the legacy search route.
-- Resolution returns only direct authored `depends_on` and `extends` edges in manifest order.
-- Resolution never expands transitive graphs or selects versions for constraints.
+- Direct relationship reads return only authored `depends_on` and `extends` edges in manifest order.
+- The legacy `resolution` route name is documented as a compatibility label only; the server capability is direct relationship retrieval.
+- Relationship reads never expand transitive graphs, select versions for constraints, or produce locks/plans.
 - Batch fetch preserves request order and returns per-item `found` / `not_found` results.
 - Exact metadata fetch avoids inlining artifact bytes.
 - Artifact streaming remains checksum-verified and immutable-cache-friendly.
