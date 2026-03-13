@@ -28,11 +28,11 @@ Deliver a production-ready, PyPI-like immutable registry service (`aptitude-serv
 4. `04-repository-api-contract-v1.md`
 5. `05-metadata-search-ranking.md`
 6. `06-policy-conflict-governance.md`
-7. `07-evaluation-repo-state-reproducibility.md` (rewritten scope: canonical PostgreSQL storage finalization)
-8. `08-operability-and-release-readiness.md` (rewritten scope: public API simplification and contract freeze)
-9. `09-postgres-content-addressed-artifact-cache.md` (rewritten scope: governance, provenance, and audit completion)
-10. `10-postgres-only-artifact-storage-and-provenance.md` (rewritten scope: operability and release readiness)
-11. `11-discovery-resolution-fetch-service-split.md` (rewritten scope: optional post-launch evaluation signals and snapshotting)
+7. `07-canonical-postgres-storage-finalization.md`
+8. `08-public-api-simplification-and-contract-freeze.md`
+9. `09-governance-Provenance-and-audit-completion.md`
+10. `10-operability-and-release-readiness.md`
+11. `11-optional-evaluation-signals-and-snapshotting.md`
 
 ## PRD Phase Mapping
 - `MVP` (prd): milestones 01-04.
