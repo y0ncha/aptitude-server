@@ -1,45 +1,47 @@
-# Plan 10 - PostgreSQL-Only Artifact Storage and Provenance Metadata
+# Plan 10 - Operability and Release Readiness
 
 ## Goal
-Keep PostgreSQL as the only runtime persistence layer for registry metadata, digest mappings, and immutable artifact payloads, while capturing provenance strictly as publish-time metadata.
+Harden `aptitude-server` for repeatable deployment and reliable operation after the storage model, public API, and governance behavior are finalized.
 
 ## Stack Alignment
 - Runtime: Python 3.12+
-- API surface: FastAPI + Pydantic v2
+- API and contracts: FastAPI + Pydantic v2
 - Data layer: SQLAlchemy 2.0 + Alembic
-- Metadata authority: PostgreSQL for versions, manifests, lifecycle state, provenance metadata, and audit
-- Artifact backend: PostgreSQL split metadata/payload tables keyed by immutable digest
+- Quality gates: pytest, ruff, mypy, coverage thresholds
 
 ## Scope
-- Keep `skill_id+version`, artifact digests, and version-to-digest bindings canonical in PostgreSQL.
-- Store artifact payloads in PostgreSQL only, using split metadata and payload tables aligned with `docs/storage-strategy-report.md`.
-- Reuse identical payload rows by digest while preserving write-once version bindings.
-- Capture provenance metadata such as `repo_url`, `commit_sha`, `tree_path`, publisher identity, and trust context at publish time.
-- Preserve immutable HTTP cache semantics (`ETag`, conditional reads) derived from PostgreSQL-stored digests.
-- Explicitly exclude filesystem storage, object storage, Git-backed reads, and any hybrid runtime storage model.
-- Preserve client ownership boundaries: no server-side solving, lock generation, or final candidate selection.
+- Add structured logs, correlation IDs, and audit trace stitching across publish, search, fetch, artifact fetch, and lifecycle/governance paths.
+- Add metrics, dashboards, alerts, and SLO instrumentation for the final registry API and PostgreSQL-only storage model.
+- Add Docker packaging, startup/run instructions, and CI quality gates.
+- Add runbooks for incidents on publish, search, exact fetch, artifact fetch, lifecycle, and governance operations.
+- Validate performance and reliability against the finalized API and storage shape from Plans 07-09 rather than against transitional routes or storage semantics.
+- Keep all operability assumptions PostgreSQL-only and registry-only.
 
 ## Architecture Impact
-- Confirms the storage direction recommended in `docs/storage-strategy-report.md`: one transactional persistence system with separate discovery and exact-fetch query paths.
-- Preserves deduplication and integrity guarantees without cross-store consistency failure modes.
-- Treats provenance as advisory metadata and audit context, never as a second source of truth for runtime reads.
+- Adds deployment and observability infrastructure without reopening product or storage decisions.
+- Makes the final registry contract measurable and supportable.
+- Prevents premature hardening of transitional APIs or discarded persistence patterns.
 
 ## Deliverables
-- Alembic migration for PostgreSQL-only digest-addressed artifact payload tables and normalized provenance fields.
-- Repository and service-layer changes so versions bind immutably to PostgreSQL payload rows.
-- API and audit support for provenance metadata on publish and immutable cache headers on exact fetch.
-- Documentation note explaining why PostgreSQL-only storage is the required architecture for the current product phase.
+- Structured logging conventions and correlation ID propagation.
+- Metrics endpoint plus counters, timers, and error-rate tracking for final registry operations.
+- Dashboards and alerts for publish, search, exact fetch, artifact fetch, and governance flows.
+- Dockerfile and local/prod run instructions.
+- CI pipeline stages for unit, integration, lint, type-check, and coverage gates.
+- Operational runbooks aligned to the final PostgreSQL-only architecture and final public route set.
 
 ## Acceptance Criteria
-- Publishing identical artifact content across different versions reuses a single PostgreSQL payload row while preserving distinct immutable version records.
-- PostgreSQL remains the source of truth for version metadata, artifact payloads, digest mappings, lifecycle state, provenance metadata, and audit history.
-- Exact fetch, search, and list behavior do not require access to a Git repository, working tree, local mirror, filesystem path, or object-store bucket.
-- Provenance metadata is optional and, when supplied, is returned as advisory metadata rather than used as a storage backend or runtime read dependency.
-- Immutable read endpoints return stable `ETag` and `Cache-Control` headers derived from the PostgreSQL-stored payload digest.
+- End-to-end registry flows are observable through logs, metrics, and audit trace data.
+- CI blocks merges on failing quality gates.
+- Containerized startup and migration flow work against the final service shape.
+- Search and exact fetch SLO instrumentation aligns with the KPIs in `docs/prd.md`.
+- Artifact fetch reliability instrumentation exists for the final immutable content endpoint.
+- Runbooks and alerts assume PostgreSQL-only storage and never reference filesystem or object-store artifact backends.
+- Operability work does not introduce or preserve transitional public API namespaces.
 
 ## Test Plan
-- Integration test: publish multiple versions with identical content and verify payload deduplication plus stable digest mapping.
-- Integration test: publish with provenance metadata and verify exact fetch returns the stored provenance fields.
-- Regression test: artifact fetch continues to work when no provenance metadata is present.
-- API test: conditional immutable reads return `304` with stable `ETag`.
-- Persistence test: PostgreSQL-only split storage honors write-once semantics and digest-addressed lookup contracts.
+- End-to-end integration test covering publish -> search -> exact fetch -> artifact fetch -> lifecycle update.
+- CI smoke test in containerized environment.
+- Audit/log correlation test for a complete registry request path.
+- Performance/load validation for search and exact fetch on the finalized route set.
+- Alerting and metrics sanity test for publish failures, exact-read failures, and search latency regression.

@@ -1,50 +1,47 @@
-# Plan 09 — PostgreSQL Content-Addressed Artifact Storage
+# Plan 09 - Governance, Provenance, and Audit Completion
 
 ## Goal
-Improve read performance and storage efficiency by introducing content-addressed artifact storage in PostgreSQL with immutable HTTP cache semantics.
+Complete the server-side governance model over the finalized PostgreSQL-backed registry by enforcing lifecycle transitions, trust rules, provenance capture, and audit completeness without expanding the server boundary.
 
 ## Stack Alignment
 - Runtime: Python 3.12+
-- API surface: FastAPI + Pydantic v2
+- API and contracts: FastAPI + Pydantic v2
 - Data layer: SQLAlchemy 2.0 + Alembic
-- Database: PostgreSQL as the source of truth for artifact identity, artifact payloads, and version mapping
+- Policy config: pydantic-settings plus environment overrides
 
 ## Scope
-- Introduce split PostgreSQL tables for metadata and payload storage (for example, `skill_versions`, `skill_artifacts`, and `skill_version_artifacts` keyed by `sha256_digest`).
-- Map immutable `skill_id+version` records to artifact digests through a dedicated binding table rather than embedding alternate storage pointers.
-- Enforce deterministic digest binding and immutability constraints at publish time.
-- Add HTTP cache behavior for immutable reads (`ETag`, `Cache-Control: immutable`, conditional `If-None-Match` support).
-- Keep client ownership boundaries intact (no server-side dependency closure solving).
+- Finish lifecycle transitions and visibility rules for `published`, `deprecated`, and `archived`.
+- Finish trust-tier enforcement and provenance validation rules at publish and privileged update boundaries.
+- Capture provenance metadata such as repository identity, commit SHA, tree path, publisher identity, and trust context as advisory publish-time metadata stored in PostgreSQL.
+- Keep provenance advisory only; it must never become a runtime storage or fetch dependency.
+- Complete audit coverage for publish, lifecycle, trust-policy, provenance, and privileged governance actions.
+- Clean up legacy compatibility tables, columns, or roadmap artifacts that no longer fit the finalized PostgreSQL-only storage and simple public API direction.
+- Keep all governance behavior scoped to publish, search visibility, and exact-read policy; do not introduce solving or runtime-selection logic.
 
 ## Architecture Impact
-- Adds a content-addressed storage layer while preserving existing registry API contracts.
-- Reduces duplicate artifact payload writes for identical content across versions.
-- Keeps discovery and exact fetch logically separate through schema and query-path design rather than separate storage backends.
-- Improves metadata and artifact fetch efficiency through cache validation and `304` reuse.
+- Finishes the governance layer on top of the final registry storage and contract shape.
+- Keeps provenance useful for traceability without turning it into a second source of truth.
+- Removes stale compatibility baggage before release hardening begins.
 
 ## Deliverables
-- Alembic migration for split-table artifact schema and `skill_version` mapping.
-- Repository and service-layer changes for publish path digest computation and deduplicated writes.
-- API support for stable `ETag` values on immutable reads and conditional response handling.
-- Integrity checks aligned to digest-addressed mapping and audit emission.
-- Learning note on content-addressed modeling tradeoffs in PostgreSQL.
+- Policy profile rules covering lifecycle transitions, trust-tier requirements, and provenance validation.
+- Final visibility rules for discovery and exact-read behavior across lifecycle states.
+- Audit event matrix covering all privileged and mutating governance actions.
+- Cleanup plan for legacy persistence and API compatibility artifacts that should not survive into the final architecture.
+- Documentation note clarifying that provenance is advisory metadata, not a storage backend or read dependency.
 
 ## Acceptance Criteria
-- Publishing identical artifact content across different versions reuses a single digest-addressed artifact row.
-- Each immutable `skill_id+version` maps to exactly one digest and cannot be overwritten.
-- Routine discovery and list queries do not need to touch the payload table.
-- Immutable read endpoints return stable `ETag` and `Cache-Control` headers.
-- Requests with matching `If-None-Match` return `304 Not Modified`.
-- Existing registry boundary rules remain unchanged (no client-owned semantics added to the server).
+- `published`, `deprecated`, and `archived` are enforced consistently for search visibility and exact-read access by documented policy.
+- Trust-tier restrictions are enforced on publish and privileged lifecycle or governance actions.
+- Provenance metadata is optional, stored in PostgreSQL when present, and returned as advisory metadata only.
+- Exact fetch, search, and list behavior remain independent of Git state, filesystem state, and object storage.
+- Audit coverage is complete for publish, deprecate, archive, trust-policy changes, provenance capture, and privileged admin actions.
+- Legacy compatibility structures still described in older plans are either removed from the roadmap or explicitly marked for deletion as pre-release cleanup.
+- The plan does not introduce reranking, dependency solving, lock generation, or execution planning semantics.
 
 ## Test Plan
-- Integration test: publish multiple versions with identical content and verify digest deduplication behavior.
-- Integration test: publish different content and verify distinct digests are stored and mapped correctly.
-- API test: immutable read returns expected `ETag` and cache headers.
-- API test: conditional request with matching `If-None-Match` returns `304`.
-- Regression test: duplicate `skill_id+version` publish remains deterministically rejected.
-
-## Change Note (2026-03-10)
-- This plan is the canonical storage direction for skill artifacts.
-- Retain the digest-addressed identity, deduplication, and immutable HTTP cache semantics from this plan and from `docs/storage-strategy-report.md`.
-- Use PostgreSQL only, with split metadata and payload tables; do not add filesystem or object-storage persistence for current skill artifacts.
+- Policy allow/deny tests for trust-tier and provenance requirements.
+- Lifecycle transition tests covering discovery visibility and exact-read behavior for each lifecycle state.
+- Integration test verifying exact fetch returns provenance metadata when present and still works when provenance is absent.
+- Audit completeness test against the governance event matrix.
+- Cleanup regression test confirming legacy compatibility artifacts can be removed without breaking the final publish/search/fetch/governance contract.

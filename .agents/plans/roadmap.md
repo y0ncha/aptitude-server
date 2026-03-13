@@ -28,18 +28,18 @@ Deliver a production-ready, PyPI-like immutable registry service (`aptitude-serv
 4. `04-repository-api-contract-v1.md`
 5. `05-metadata-search-ranking.md`
 6. `06-policy-conflict-governance.md`
-7. `07-evaluation-repo-state-reproducibility.md`
-8. `08-operability-and-release-readiness.md`
-9. `09-postgres-content-addressed-artifact-cache.md`
-10. `10-postgres-only-artifact-storage-and-provenance.md`
-11. `11-discovery-resolution-fetch-service-split.md`
+7. `07-evaluation-repo-state-reproducibility.md` (rewritten scope: canonical PostgreSQL storage finalization)
+8. `08-operability-and-release-readiness.md` (rewritten scope: public API simplification and contract freeze)
+9. `09-postgres-content-addressed-artifact-cache.md` (rewritten scope: governance, provenance, and audit completion)
+10. `10-postgres-only-artifact-storage-and-provenance.md` (rewritten scope: operability and release readiness)
+11. `11-discovery-resolution-fetch-service-split.md` (rewritten scope: optional post-launch evaluation signals and snapshotting)
 
 ## PRD Phase Mapping
 - `MVP` (prd): milestones 01-04.
 - `v1.1` (prd): milestones 05-06.
-- `v2.0` prep (prd): milestones 07-08.
-- `v2.x` performance and cache hardening: milestone 09.
-- `v2.x` storage and provenance hardening: milestone 10.
+- `v2.0` prep (prd): milestones 07-09.
+- `Release readiness`: milestone 10.
+- `Post-launch optional discovery enhancements`: milestone 11.
 - Resolver-specific initiatives (prompt interpretation, deterministic solving, reranking, plugin chains, and lock replay) are tracked in resolver planning and are out of scope for this roadmap.
 
 ## Roadmap Rules
