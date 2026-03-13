@@ -1,4 +1,4 @@
-# Storage Strategy Report for Skill Content
+# Storage Strategy for Skill Content
 
 ## Purpose
 

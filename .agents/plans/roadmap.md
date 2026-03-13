@@ -34,6 +34,7 @@ Deliver a production-ready, PyPI-like immutable registry service (`aptitude-serv
 10. `10-operability-and-release-readiness.md`
 11. `11-optional-evaluation-signals-and-snapshotting.md`
 12. `12-minimal-auth-boundary-and-token-governance.md`
+13. `13-environment-profiles-and-auth-modes.md`
 
 ## PRD Phase Mapping
 - `MVP` (prd): milestones 01-04.
@@ -42,6 +43,7 @@ Deliver a production-ready, PyPI-like immutable registry service (`aptitude-serv
 - `Release readiness`: milestone 10.
 - `Post-launch optional discovery enhancements`: milestone 11.
 - `Security boundary hardening`: milestone 12.
+- `Environment profile separation`: milestone 13.
 - Resolver-specific initiatives (prompt interpretation, deterministic solving, reranking, plugin chains, and lock replay) are tracked in resolver planning and are out of scope for this roadmap.
 
 ## Roadmap Rules

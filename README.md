@@ -12,70 +12,67 @@
 [![DeepWiki](https://img.shields.io/badge/Ask-DeepWiki-0A66C2?style=for-the-badge&logo=data%3Aimage%2Fpng%3Bbase64%2CiVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAAsVBMVEVHcEwmWMYZy38Akt0gwZoSaFIbYssUmr4gwJkBlN4WbNE4acofwZkBj9k4aMkBk94WgM0bsIM4aMkewJc2ZMM3Z8cbvIwYpHsewJYAftgBkt0fvpgBkt0cv44cv5wzYckAjtsCk90pasUboXsgwJkfwpYfwJg4aMoct44yXswAkd0BkN84Z8cBktwduZIjcO85lM4hwZo5acoBleA6a88iyaABmOQ8b9QhxZ0CnOoizaOW4DOvAAAAMHRSTlMAKCfW%2FAgWA%2F7%2FDfvMc9j7MU%2Frj3XBcRW%2FJMbe7kUxjI%2FlUzzz6tPQkJ%2BjVmW1oeulmmslAAAByUlEQVQ4y32Tia6jIBSGUVFcqliXtlq73rm3d50ERNC%2B%2F4PNQetoptMeE0PgC%2F9%2FFhCaBSH9Hz2J%2BONgPDl2DolSUWY%2FPL8oEQRCfPxHpFc3Ah5wHoiI6I05NXgjAOgQF3Jn1Dlo4XMPDDes09UE2d%2BREvl3lijBg4CrHNmrbcM2u9u5nwsRcAFfFHFY5sZ607Yua3GqpQiKE6G9cZHZThblZ4T2mLnMxde3ATASMUj72o0Pbs1fADDcLHqAjEDugJ3lC%2BztMGYTADcoLaFyH%2B02DP9%2BWS4ahrXE4laALFKcq8vZfscNY8312mxfr27bLJZjnsYhSDIHmUxLu9h9N%2Fep%2B7pazwoZQw%2B1Nwi33epu7c2p8RooeqCdAHMGoOJIq3CUwIMEniRIaHVe3ZVnO2Vgsh1MstEkQUXVUc%2BjXfk3zbemxS6%2BpQmlPtUeALJ8VKj4JHvAelBqFFdSS3h1SPzQKr%2F%2BaRa0%2B0cCIWtJLauG5U%2FfbgyG01uiNqQhyzA8ddKj1OvK28AsZyN3DKE4X6AEWrU1jJx9N7RFpdPxpHU%2FtMOQG9SjfTp3Yz8KgRVKpfx88Dqhpseq606h%2F%2Bzxfh6LJ8eEDKWbxx9XEDwqzP1SVgAAAABJRU5ErkJggg%3D%3D)](https://deepwiki.com/y0ncha/aptitude-server)
 ![Last Commit](https://img.shields.io/github/last-commit/y0ncha/aptitude-server?style=for-the-badge)
 
-`aptitude-server` is the registry service in the Aptitude ecosystem.
-It stores immutable skill markdown, structured metadata, and relationship
-selectors in PostgreSQL so clients can publish versions, fetch exact content,
-and rely on registry-backed discovery instead of crawling the full catalog.
+`aptitude-server` is the registry service in the Aptitude ecosystem. It stores immutable
+skill artifacts, structured metadata, direct relationship selectors, lifecycle state, and
+audit data in PostgreSQL so clients can publish exact versions, search indexed metadata,
+and fetch canonical content without crawling the full catalog.
 
-## What This Service Owns
+## Service Boundary
 
-- Immutable `slug@version` publication
-- Exact version fetches with checksum-backed integrity validation
-- Version metadata and direct dependency declarations
-- Registry metadata that powers discovery APIs
-- Publish/read auditability and lifecycle governance
+This repository follows the boundary defined in [`docs/scope.md`](docs/scope.md):
 
-## What It Does Not Own
+- Server owns data-local work: publish, fetch, list, search, governance, and audit.
+- Client owns decision-local work: prompt interpretation, reranking, final selection,
+  dependency solving, lock generation, and execution planning.
 
-`aptitude-server` is not the client runtime.
-Prompt interpretation, reranking, dependency solving, lock generation, and
-execution planning belong to the client-side runtime.
+In practice:
 
-Use this rule consistently:
+- `aptitude-server` behaves like a package registry / catalog service.
+- `aptitude-client` behaves like the package manager / runtime planner.
 
-- Server owns data-local work
-- Client owns decision-local work
+## Current Implementation
 
-In practice, that means the server behaves more like a package registry, while
-the client behaves more like the package manager and runtime planner.
+The current codebase is registry-first and aligned with the PRD's core responsibilities:
 
-## How It Fits Together
+- FastAPI service with OpenAPI docs and PostgreSQL-backed persistence
+- Immutable publication of normalized `slug@version` records
+- Exact metadata fetch and raw markdown fetch for immutable versions
+- Indexed advisory discovery over descriptions, tags, language, trust tier, status, freshness,
+  and content-size filters
+- Direct relationship batch reads for authored `depends_on`, `extends`, `conflicts_with`, and
+  `overlaps_with` selectors
+- Lifecycle governance with `published`, `deprecated`, and `archived` states
+- Scoped Bearer-token authorization for `read`, `publish`, and `admin`
+- Optional publish-time provenance metadata (`repo_url`, `commit_sha`, `tree_path`)
+- Audit recording for registry operations
 
-```text
-User / Agent
-  -> Client
-  -> aptitude-server
-  -> PostgreSQL + audit log
-```
+The server does not perform client/runtime concerns from the PRD:
 
-The server keeps immutable records and exposes stable registry APIs.
-The client uses those APIs to retrieve candidates, choose versions, solve
-dependencies, and build reproducible lock output.
+- prompt interpretation
+- context-aware reranking
+- final candidate choice
+- dependency solving or closure expansion
+- lock generation
+- execution planning
 
-## Current Scope
+## Storage Strategy
 
-The current implementation is intentionally registry-first.
+The current implementation follows the recommendation in
+[`docs/storage-strategy-report.md`](docs/storage-strategy.md):
 
-Implemented now:
+- PostgreSQL is the only persistence system.
+- Discovery metadata and exact-fetch content are separated at the schema and query-path level.
+- Immutable markdown content is stored once per digest and reused across versions.
+- Version rows bind immutably to digest-addressed content.
 
-- FastAPI service with health and readiness endpoints
-- Immutable publish API for normalized JSON payloads
-- Exact metadata and content fetch by `slug` and `version`
-- Version listing per skill
-- Indexed advisory search over metadata and descriptions
-- Direct relationship batch reads over authored selectors
-- Lifecycle governance and status transitions
-- PostgreSQL-backed content and metadata persistence
-- Direct dependency declaration validation and retrieval
+This matches the current workload assumptions from the report: skill bodies are small
+(`4-6 KB` on average), fetched as whole documents, and discovery plus exact fetch should stay
+independently optimizable without introducing filesystem or object storage complexity.
 
-Planned next:
+## API Surface Today
 
-- Richer governance and lifecycle controls
-- Discovery metadata and evaluation signals
-
-## Current API
-
-Available endpoints today:
+The PRD describes the service in capability terms such as "publish" and "search". The current
+HTTP surface implements those capabilities with the following routes:
 
 - `GET /healthz`
 - `GET /readyz`
@@ -88,64 +85,116 @@ Available endpoints today:
 - `GET /skills/{slug}/versions/{version}/content`
 - `PATCH /skills/{slug}/versions/{version}/status`
 
-`GET /discovery/skills/search` is a discovery API for candidate generation only. Prompt
-interpretation, reranking, final selection, dependency solving, and execution
-planning remain client-owned responsibilities.
+Notes:
 
-When the service is running locally, OpenAPI docs are available at
-`http://127.0.0.1:8000/docs`.
-The pinned standalone OpenAPI contract for the current v1 surface is committed at
-`docs/openapi/repository-api-v1.json`.
+- All non-health endpoints require `Authorization: Bearer <token>`.
+- `POST /skill-versions` is the current publish route for immutable version creation.
+- `GET /discovery/skills/search` is a discovery-only candidate-generation endpoint.
+- `POST /resolution/relationships:batch` returns only direct authored relationships, not a
+  solved graph.
+- `GET /skills/{slug}/versions/{version}/content` returns `ETag` and
+  `Cache-Control: public, immutable` headers derived from stored content.
 
-## Tech At A Glance
+When running locally, interactive docs are available at `http://127.0.0.1:8000/docs`.
+The pinned standalone contract is committed at `docs/openapi/repository-api-v1.json`.
 
-- Python 3.12+
-- FastAPI + Pydantic v2
-- PostgreSQL + SQLAlchemy + Alembic
-- PostgreSQL-backed content and search projections
-- Ruff, pytest, mypy
+## Governance and Auth
+
+The default policy model is implemented in code and consistent with the PRD's governance goals:
+
+- Trust tiers: `untrusted`, `internal`, `verified`
+- Lifecycle states: `published`, `deprecated`, `archived`
+- Scopes: `read`, `publish`, `admin`
+
+Default publish rules:
+
+- `untrusted`: requires `publish`
+- `internal`: requires `publish` and provenance metadata
+- `verified`: requires `admin` and provenance metadata
+
+Default visibility rules:
+
+- Discovery defaults to `published`
+- Read callers may search `published` and `deprecated`
+- Admin callers may also search `archived`
+- Exact reads allow `published` and `deprecated` for read callers; `archived` requires `admin`
+
+Git is optional provenance only. The server does not require a Git checkout to publish, search,
+or fetch exact versions at runtime.
+
+## Caching and Integrity
+
+Current integrity and caching behavior:
+
+- Content digests use `sha256`
+- Exact content responses expose digest-backed `ETag`
+- Immutable content responses send `Cache-Control: public, immutable`
+
+The PRD also calls out full conditional read behavior (`If-None-Match` -> `304 Not Modified`) as
+part of the target contract. The README treats digest-backed `ETag` emission as implemented today
+and the broader conditional-read contract as part of the documented direction.
 
 ## Local Development
 
 ### Requirements
 
-- Python 3.12+
-- `uv`
-- Docker (recommended for local PostgreSQL)
+- Python `3.12+`
+- [`uv`](https://docs.astral.sh/uv/)
+- Docker
 
-### Start the database
+### Start PostgreSQL
 
 ```bash
 make db-up
 ```
 
-This starts PostgreSQL on `localhost:5432` with the default database
-`aptitude`.
+This starts PostgreSQL on `localhost:5432` with the default database `aptitude`.
 
-### Install dependencies and run the server
+### Install dependencies
 
 ```bash
 uv venv
 source .venv/bin/activate
 uv sync --extra dev
-export DATABASE_URL="postgresql+psycopg://postgres:postgres@localhost:5432/aptitude"
+```
+
+### Configure environment
+
+```bash
+export DATABASE_URL="postgresql+psycopg://postgres:postgres@127.0.0.1:5432/aptitude"
+export AUTH_TOKENS_JSON='{"reader-token":["read"],"publisher-token":["read","publish"],"admin-token":["read","publish","admin"]}'
+```
+
+Optional settings:
+
+- `LOG_LEVEL` defaults to `INFO`
+- `ACTIVE_POLICY_PROFILE` defaults to `default`
+- `POLICY_PROFILES_JSON` can define additional policy profiles
+
+### Run migrations and start the API
+
+```bash
 make migrate-up
 make run
 ```
 
-`make run` uses the FastAPI CLI with the committed `app.main:app` entrypoint.
-The app runs on `http://127.0.0.1:8000`.
+The API runs on `http://127.0.0.1:8000`.
 
 ### Useful commands
 
 ```bash
-make lint
 make test
+make lint
+make format
 make typecheck
+make migrate-down
 make db-down
 ```
 
-## More Context
+## Project References
 
+- Product requirements: [`docs/prd.md`](docs/prd.md)
+- Server/client boundary: [`docs/scope.md`](docs/scope.md)
+- Storage decision: [`docs/storage-strategy-report.md`](docs/storage-strategy.md)
 - Product and architecture overview: [`docs/overview.md`](docs/overview.md)
-- Server vs client boundary: [`docs/scope.md`](docs/scope.md)
+- API contract: [`docs/openapi/repository-api-v1.json`](docs/openapi/repository-api-v1.json)

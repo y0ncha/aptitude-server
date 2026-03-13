@@ -25,7 +25,7 @@ icon = "debug"
 command = "make debug"
 
 [[actions]]
-name = "Lint"
+name = "Quality"
 icon = "tool"
 command = '''
 make format
