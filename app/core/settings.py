@@ -95,6 +95,12 @@ class Settings(BaseSettings):
     def active_policy(self) -> PolicyProfile:
         """Return the configured active policy profile as a core domain object."""
         configured = self.effective_policy_profiles[self.active_policy_profile]
+        # Merge default publish rules with any overrides from the configured profile
+        default_rules = _default_publish_rules()
+        merged_rules: dict[TrustTier, PublishRuleSettings] = {
+            **default_rules,
+            **configured.publish_rules,
+        }
         return PolicyProfile(
             name=self.active_policy_profile,
             publish_rules={
@@ -102,7 +108,7 @@ class Settings(BaseSettings):
                     required_scope=rule.required_scope,
                     provenance_required=rule.provenance_required,
                 )
-                for tier, rule in configured.publish_rules.items()
+                for tier, rule in merged_rules.items()
             },
             lifecycle_transitions=configured.lifecycle_transitions,
             discovery_default_statuses=configured.discovery_default_statuses,

@@ -99,6 +99,17 @@ class GovernancePolicy:
 
     def __init__(self, *, profile: PolicyProfile) -> None:
         self._profile = profile
+        # Validate that the profile defines publish rules for all trust tiers up-front
+        missing_tiers = [tier for tier in ALL_TRUST_TIERS if tier not in profile.publish_rules]
+        if missing_tiers:
+            raise PolicyViolation(
+                code="POLICY_PROFILE_INVALID",
+                message="Policy profile is missing publish rules for some trust tiers.",
+                details={
+                    "profile": profile.name,
+                    "missing_trust_tiers": tuple(missing_tiers),
+                },
+            )
 
     @property
     def profile_name(self) -> str:
