@@ -43,9 +43,9 @@ from app.interface.validation import SEMVER_PATTERN, SLUG_PATTERN
 
 router = APIRouter(tags=["skills"])
 
-OpenAPIResponses = dict[int | str, dict[str, Any]]
+ApiResponses = dict[int | str, dict[str, Any]]
 
-REQUEST_VALIDATION_ERROR_RESPONSE: OpenAPIResponses = {
+REQUEST_VALIDATION_ERROR_RESPONSE: ApiResponses = {
     status.HTTP_422_UNPROCESSABLE_CONTENT: {
         "model": ErrorEnvelope,
         "description": "The request body, path parameters, or query parameters are invalid.",
@@ -53,7 +53,7 @@ REQUEST_VALIDATION_ERROR_RESPONSE: OpenAPIResponses = {
     }
 }
 
-PUBLISH_RESPONSES: OpenAPIResponses = {
+PUBLISH_RESPONSES: ApiResponses = {
     status.HTTP_201_CREATED: {
         "description": "Immutable skill version published successfully.",
         "content": {"application/json": {"example": SKILL_VERSION_METADATA_RESPONSE_EXAMPLE}},
@@ -71,7 +71,7 @@ PUBLISH_RESPONSES: OpenAPIResponses = {
     **REQUEST_VALIDATION_ERROR_RESPONSE,
 }
 
-STATUS_RESPONSES: OpenAPIResponses = {
+STATUS_RESPONSES: ApiResponses = {
     status.HTTP_200_OK: {
         "description": "Lifecycle status updated successfully.",
         "content": {"application/json": {"example": SKILL_VERSION_STATUS_RESPONSE_EXAMPLE}},

@@ -20,9 +20,9 @@ from app.interface.dto.skills import SkillVersionBatchRequest, SkillVersionMetad
 
 router = APIRouter(tags=["fetch"])
 
-OpenAPIResponses = dict[int | str, dict[str, Any]]
+ApiResponses = dict[int | str, dict[str, Any]]
 
-REQUEST_VALIDATION_ERROR_RESPONSE: OpenAPIResponses = {
+REQUEST_VALIDATION_ERROR_RESPONSE: ApiResponses = {
     status.HTTP_422_UNPROCESSABLE_CONTENT: {
         "model": ErrorEnvelope,
         "description": "The request body is invalid.",
@@ -30,7 +30,7 @@ REQUEST_VALIDATION_ERROR_RESPONSE: OpenAPIResponses = {
     }
 }
 
-METADATA_BATCH_RESPONSES: OpenAPIResponses = {
+METADATA_BATCH_RESPONSES: ApiResponses = {
     status.HTTP_200_OK: {
         "description": "Ordered immutable metadata results returned successfully.",
         "content": {"application/json": {"example": METADATA_BATCH_RESPONSE_EXAMPLE}},
@@ -38,7 +38,7 @@ METADATA_BATCH_RESPONSES: OpenAPIResponses = {
     **REQUEST_VALIDATION_ERROR_RESPONSE,
 }
 
-CONTENT_BATCH_RESPONSES: OpenAPIResponses = {
+CONTENT_BATCH_RESPONSES: ApiResponses = {
     status.HTTP_200_OK: {
         "description": "Ordered immutable markdown parts returned successfully.",
         "content": {

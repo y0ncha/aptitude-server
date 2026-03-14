@@ -129,7 +129,7 @@ flowchart LR
 
 | Status | Technology | Used For |
 | --- | --- | --- |
-| Current (MVP baseline) | Python + FastAPI + OpenAPI | Registry API boundary for publish, fetch, list, discovery, relationship reads, and governance contracts. |
+| Current (MVP baseline) | Python + FastAPI + Swagger UI | Registry API boundary for publish, fetch, list, discovery, relationship reads, and governance contracts. |
 | Current (MVP baseline) | Pydantic v2 | Request and response validation for registry contracts. |
 | Current (MVP baseline) | Uvicorn via FastAPI CLI in development | ASGI serving in local development. |
 | Current (MVP baseline) | PostgreSQL | Canonical storage for versions, metadata, artifact payloads, lifecycle state, digest mappings, and audit records. |

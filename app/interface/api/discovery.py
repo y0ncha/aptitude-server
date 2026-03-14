@@ -18,9 +18,9 @@ from app.interface.dto.skills import SkillDiscoveryRequest, SkillDiscoveryRespon
 
 router = APIRouter(tags=["discovery"])
 
-OpenAPIResponses = dict[int | str, dict[str, Any]]
+ApiResponses = dict[int | str, dict[str, Any]]
 
-DISCOVERY_RESPONSES: OpenAPIResponses = {
+DISCOVERY_RESPONSES: ApiResponses = {
     status.HTTP_200_OK: {
         "description": "Ordered candidate slugs returned successfully.",
         "content": {"application/json": {"example": DISCOVERY_RESPONSE_EXAMPLE}},

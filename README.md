@@ -35,7 +35,7 @@ In practice:
 
 The current codebase is registry-first and aligned with the PRD's core responsibilities:
 
-- FastAPI service with OpenAPI docs and PostgreSQL-backed persistence
+- FastAPI service with Swagger UI docs and PostgreSQL-backed persistence
 - Immutable publication of normalized `slug@version` records
 - Body-based discovery that returns ordered candidate slugs
 - Exact dependency reads for authored `depends_on` selectors only
@@ -94,8 +94,7 @@ Notes:
   and `Cache-Control: public, immutable` headers on found parts.
 
 When running locally, interactive docs are available at `http://127.0.0.1:8000/docs`.
-The pinned standalone contract is committed at `docs/openapi/repository-api-v1.json`.
-The human-readable companion is [`docs/api-contract.md`](docs/api-contract.md).
+The human-readable API reference is [`docs/api-contract.md`](docs/api-contract.md).
 
 ## Governance and Auth
 
@@ -196,4 +195,4 @@ make db-down
 - Server/client boundary: [`docs/scope.md`](docs/scope.md)
 - Storage decision: [`docs/storage-strategy.md`](docs/storage-strategy.md)
 - Product and architecture overview: [`docs/overview.md`](docs/overview.md)
-- API contract: [`docs/openapi/repository-api-v1.json`](docs/openapi/repository-api-v1.json)
+- API contract: [`docs/api-contract.md`](docs/api-contract.md)

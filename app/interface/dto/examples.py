@@ -1,4 +1,4 @@
-"""Shared OpenAPI request and response examples for the public API."""
+"""Shared request and response examples for the public API."""
 
 from __future__ import annotations
 

@@ -79,7 +79,6 @@ Use the smallest relevant set of docs for the task at hand.
 ### API and Contract Work
 
 - [`docs/api-contract.md`](../docs/api-contract.md): route behavior and public request/response contract
-- `docs/openapi/` artifacts, when present: committed OpenAPI outputs for drift checks
 - `postman/collections/`: concrete request examples and manual validation flows
 
 ### Persistence and Discovery

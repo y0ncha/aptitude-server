@@ -1,4 +1,4 @@
-"""Validation tests for shared OpenAPI examples."""
+"""Validation tests for shared API contract examples."""
 
 from __future__ import annotations
 

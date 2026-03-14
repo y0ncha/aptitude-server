@@ -1,8 +1,7 @@
 # API Contract
 
 Human-readable summary of the public HTTP API implemented by `aptitude-server`.
-The pinned machine-readable source remains
-[`docs/openapi/repository-api-v1.json`](./openapi/repository-api-v1.json).
+For interactive local API docs, use `http://127.0.0.1:8000/docs`.
 
 ## Boundary
 
@@ -316,4 +315,4 @@ Use these as implementation truth:
 - [`app/interface/api/README.md`](../app/interface/api/README.md)
 - [`app/interface/dto/skills.py`](../app/interface/dto/skills.py)
 - [`app/interface/dto/examples.py`](../app/interface/dto/examples.py)
-- [`docs/openapi/repository-api-v1.json`](./openapi/repository-api-v1.json)
+- Swagger UI: `http://127.0.0.1:8000/docs`

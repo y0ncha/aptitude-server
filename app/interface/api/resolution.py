@@ -22,9 +22,9 @@ from app.interface.validation import SEMVER_PATTERN, SLUG_PATTERN
 
 router = APIRouter(tags=["resolution"])
 
-OpenAPIResponses = dict[int | str, dict[str, Any]]
+ApiResponses = dict[int | str, dict[str, Any]]
 
-RESOLUTION_RESPONSES: OpenAPIResponses = {
+RESOLUTION_RESPONSES: ApiResponses = {
     status.HTTP_200_OK: {
         "description": "Direct dependency declarations returned successfully.",
         "content": {"application/json": {"example": RESOLUTION_RESPONSE_EXAMPLE}},

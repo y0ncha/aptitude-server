@@ -4,7 +4,7 @@
 Freeze the final public registry contract around the hard-cut route split introduced in Plan 07, keep those endpoints simple through every later milestone, and prevent the roadmap from drifting back toward legacy read routes, compatibility facades, or single-item fetch helpers.
 
 ## Stack Alignment
-- API framework: FastAPI with OpenAPI-first contracts
+- API framework: FastAPI
 - Runtime: Python 3.12+
 - Validation: Pydantic v2
 - Data layer compatibility: SQLAlchemy 2.0 + Alembic
@@ -52,7 +52,7 @@ Freeze the final public registry contract around the hard-cut route split introd
 - The frozen contract remains execution-agnostic and excludes solving, reranking, lock generation, and runtime planning semantics.
 
 ## Test Plan
-- OpenAPI review for the final publish, discovery, resolution, batch-fetch, and governance route set.
+- Contract review for the final publish, discovery, resolution, batch-fetch, and governance route set.
 - Contract review confirming resolution remains public and exact-first-degree only.
 - Regression review confirming removed single-item fetch routes are not reintroduced as convenience APIs.
 - Documentation review confirming compatibility language has been removed from the final contract description.

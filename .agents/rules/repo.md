@@ -22,7 +22,7 @@ API contract changes include:
 - request or response schema changes
 - endpoint additions, removals, or path changes
 - behavior changes that alter the documented external contract
-- OpenAPI contract changes
+- interactive docs or public API contract changes
 
 ## Pre-Production Default
 
