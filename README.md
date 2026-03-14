@@ -195,6 +195,6 @@ make db-down
 
 - Product requirements: [`docs/prd.md`](docs/prd.md)
 - Server/client boundary: [`docs/scope.md`](docs/scope.md)
-- Storage decision: [`docs/storage-strategy-report.md`](docs/storage-strategy.md)
+- Storage decision: [`docs/storage-strategy.md`](docs/storage-strategy.md)
 - Product and architecture overview: [`docs/overview.md`](docs/overview.md)
 - API contract: [`docs/openapi/repository-api-v1.json`](docs/openapi/repository-api-v1.json)
