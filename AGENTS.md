@@ -1,19 +1,11 @@
-# Project Rules
+# Agent Instructions
 
-## Approval Gates
+This file is the quick entrypoint for repo-specific instructions.
 
-- Any database schema change requires explicit user approval before implementation.
-- Any public API contract change requires explicit user approval before implementation.
+Strict project rules live in [.agents/rules/repo.md](/Users/yonatan/Dev/Aptitude/aptitude-server/.agents/rules/repo.md).
 
-Schema changes include, for example:
+Workflows, methodology, and documentation preferences live in [.agents/agent.md](/Users/yonatan/Dev/Aptitude/aptitude-server/.agents/agent.md).
 
-- Alembic migrations
-- SQLAlchemy model shape changes
-- new or changed tables, columns, indexes, constraints, or relationships
+## Key Rule
 
-API contract changes include, for example:
-
-- request or response schema changes
-- endpoint additions, removals, or path changes
-- behavior changes that alter the documented external contract
-- OpenAPI contract changes
+- Any database schema change or public API contract change requires explicit user approval before implementation.
