@@ -9,8 +9,8 @@ This changelog documents implementation alignment for [.agents/plans/02-immutabl
   - `GET /skills/{id}/{version}`
   - `GET /skills/{id}`
 - Publish, exact fetch, duplicate rejection, checksum generation, and read-time integrity verification are handled by [app/core/skill_registry.py](../../app/core/skill_registry.py).
-- Immutable artifact bytes and manifest snapshots are written to filesystem storage by [app/persistence/artifact_store.py](../../app/persistence/artifact_store.py) using the `skills/<skill_id>/<version>/` layout.
-- Version metadata, checksum rows, and deterministic version listings are persisted through [app/persistence/skill_registry_repository.py](../../app/persistence/skill_registry_repository.py) and [alembic/versions/0002_immutable_skill_registry.py](../../alembic/versions/0002_immutable_skill_registry.py).
+- Immutable artifact bytes and manifest snapshots are written to filesystem storage by [app/persistence/artifact_store.py](https://github.com/y0ncha/Aptitude/blob/1511320d6002088dd240ca76413dda7fbe650703/app/persistence/artifact_store.py) using the `skills/<skill_id>/<version>/` layout.
+- Version metadata, checksum rows, and deterministic version listings are persisted through [app/persistence/skill_registry_repository.py](../../app/persistence/skill_registry_repository.py) and [alembic/versions/0002_immutable_skill_registry.py](https://github.com/y0ncha/Aptitude/blob/2af854594fcd3c2b75b7363557f368272a430b13/alembic/versions/0002_immutable_skill_registry.py).
 - Audit recording for publish, read, list, and integrity-violation events is implemented by [app/audit/recorder.py](../../app/audit/recorder.py) and [app/persistence/models/audit_event.py](../../app/persistence/models/audit_event.py).
 
 ## Architecture Snapshot
@@ -55,14 +55,14 @@ sequenceDiagram
 
 ## Design Notes
 
-- Duplicate protection is layered. The service pre-checks `(skill_id, version)`, the filesystem adapter guards immutable paths, and the database enforces a unique constraint on `(skill_fk, version)`. See [app/core/skill_registry.py](../../app/core/skill_registry.py), [app/persistence/artifact_store.py](../../app/persistence/artifact_store.py), and [alembic/versions/0002_immutable_skill_registry.py](../../alembic/versions/0002_immutable_skill_registry.py).
+- Duplicate protection is layered. The service pre-checks `(skill_id, version)`, the filesystem adapter guards immutable paths, and the database enforces a unique constraint on `(skill_fk, version)`. See [app/core/skill_registry.py](../../app/core/skill_registry.py), [app/persistence/artifact_store.py](https://github.com/y0ncha/Aptitude/blob/1511320d6002088dd240ca76413dda7fbe650703/app/persistence/artifact_store.py), and [alembic/versions/0002_immutable_skill_registry.py](https://github.com/y0ncha/Aptitude/blob/2af854594fcd3c2b75b7363557f368272a430b13/alembic/versions/0002_immutable_skill_registry.py).
 - Exact version fetches always recompute `sha256` over stored artifact bytes before returning a response, so corruption is detected on the read path rather than assumed away. See [app/core/skill_registry.py](../../app/core/skill_registry.py) and [tests/integration/test_skill_registry_endpoints.py](../../tests/integration/test_skill_registry_endpoints.py).
-- Provenance basics are currently represented by immutable manifest snapshots plus audit events, not a dedicated provenance table. See [app/persistence/artifact_store.py](../../app/persistence/artifact_store.py) and [app/persistence/models/audit_event.py](../../app/persistence/models/audit_event.py).
+- Provenance basics are currently represented by immutable manifest snapshots plus audit events, not a dedicated provenance table. See [app/persistence/artifact_store.py](https://github.com/y0ncha/Aptitude/blob/1511320d6002088dd240ca76413dda7fbe650703/app/persistence/artifact_store.py) and [app/persistence/models/audit_event.py](../../app/persistence/models/audit_event.py).
 - Version listing is deterministic by `published_at DESC, id DESC`, which keeps repeated reads stable for client-side lock and replay flows. See [app/persistence/skill_registry_repository.py](../../app/persistence/skill_registry_repository.py) and [tests/integration/test_skill_registry_endpoints.py](../../tests/integration/test_skill_registry_endpoints.py).
 
 ## Schema Reference
 
-Source: [0002_immutable_skill_registry.py](../../alembic/versions/0002_immutable_skill_registry.py).
+Source: [0002_immutable_skill_registry.py](https://github.com/y0ncha/Aptitude/blob/2af854594fcd3c2b75b7363557f368272a430b13/alembic/versions/0002_immutable_skill_registry.py).
 
 ### `skills`
 
