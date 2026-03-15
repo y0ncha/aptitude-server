@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 PUBLISH_REQUEST_EXAMPLE = {
-    "slug": "python.lint",
+    "intent": "create_skill",
     "version": "1.2.3",
     "content": {
         "raw_markdown": "# Python Lint\n\nLint Python files consistently.\n",
@@ -126,6 +126,22 @@ DUPLICATE_SKILL_VERSION_ERROR_EXAMPLE = {
         "code": "DUPLICATE_SKILL_VERSION",
         "message": "Skill version already exists: python.lint@1.2.3",
         "details": {"slug": "python.lint", "version": "1.2.3"},
+    }
+}
+
+SKILL_ALREADY_EXISTS_ERROR_EXAMPLE = {
+    "error": {
+        "code": "SKILL_ALREADY_EXISTS",
+        "message": "Skill already exists: python.lint",
+        "details": {"slug": "python.lint"},
+    }
+}
+
+SKILL_NOT_FOUND_ERROR_EXAMPLE = {
+    "error": {
+        "code": "SKILL_NOT_FOUND",
+        "message": "Skill not found: python.lint",
+        "details": {"slug": "python.lint"},
     }
 }
 

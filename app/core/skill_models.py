@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from app.core.governance import (
     LifecycleStatus,
@@ -14,6 +14,7 @@ from app.core.governance import (
 )
 
 SHA256_ALGORITHM = "sha256"
+PublishIntent = Literal["create_skill", "publish_version"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,6 +66,7 @@ class CreateSkillVersionCommand:
     """Publish command for one immutable normalized version."""
 
     slug: str
+    intent: PublishIntent
     version: str
     content: SkillContentInput
     metadata: SkillMetadataInput
@@ -151,6 +153,22 @@ class DuplicateSkillVersionError(SkillRegistryError):
         super().__init__(f"Skill version already exists: {slug}@{version}")
         self.slug = slug
         self.version = version
+
+
+class SkillAlreadyExistsError(SkillRegistryError):
+    """Raised when the caller tries to create a skill under an existing slug."""
+
+    def __init__(self, *, slug: str) -> None:
+        super().__init__(f"Skill already exists: {slug}")
+        self.slug = slug
+
+
+class SkillNotFoundError(SkillRegistryError):
+    """Raised when the caller tries to publish a version under a missing slug."""
+
+    def __init__(self, *, slug: str) -> None:
+        super().__init__(f"Skill not found: {slug}")
+        self.slug = slug
 
 
 class SkillVersionNotFoundError(SkillRegistryError):

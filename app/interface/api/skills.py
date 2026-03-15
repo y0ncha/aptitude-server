@@ -14,6 +14,8 @@ from app.core.dependencies import (
 )
 from app.core.skill_registry import (
     DuplicateSkillVersionError,
+    SkillAlreadyExistsError,
+    SkillNotFoundError,
     SkillRegistryError,
     SkillVersionNotFoundError,
 )
@@ -29,6 +31,8 @@ from app.interface.dto.examples import (
     DUPLICATE_SKILL_VERSION_ERROR_EXAMPLE,
     INVALID_REQUEST_ERROR_EXAMPLE,
     PUBLISH_REQUEST_EXAMPLE,
+    SKILL_ALREADY_EXISTS_ERROR_EXAMPLE,
+    SKILL_NOT_FOUND_ERROR_EXAMPLE,
     SKILL_VERSION_METADATA_RESPONSE_EXAMPLE,
     SKILL_VERSION_NOT_FOUND_ERROR_EXAMPLE,
     SKILL_VERSION_STATUS_RESPONSE_EXAMPLE,
@@ -60,8 +64,30 @@ PUBLISH_RESPONSES: ApiResponses = {
     },
     status.HTTP_409_CONFLICT: {
         "model": ErrorEnvelope,
-        "description": "The requested immutable `slug@version` already exists.",
-        "content": {"application/json": {"example": DUPLICATE_SKILL_VERSION_ERROR_EXAMPLE}},
+        "description": (
+            "The requested publish conflicts with existing state because the immutable "
+            "`slug@version` already exists or the skill slug already exists for "
+            "`intent=create_skill`."
+        ),
+        "content": {
+            "application/json": {
+                "examples": {
+                    "duplicate_skill_version": {
+                        "summary": "Duplicate immutable version",
+                        "value": DUPLICATE_SKILL_VERSION_ERROR_EXAMPLE,
+                    },
+                    "skill_already_exists": {
+                        "summary": "Skill slug already exists",
+                        "value": SKILL_ALREADY_EXISTS_ERROR_EXAMPLE,
+                    },
+                }
+            }
+        },
+    },
+    status.HTTP_404_NOT_FOUND: {
+        "model": ErrorEnvelope,
+        "description": "The requested skill slug does not exist for `intent=publish_version`.",
+        "content": {"application/json": {"example": SKILL_NOT_FOUND_ERROR_EXAMPLE}},
     },
     status.HTTP_500_INTERNAL_SERVER_ERROR: {
         "model": ErrorEnvelope,
@@ -86,12 +112,13 @@ STATUS_RESPONSES: ApiResponses = {
 
 
 @router.post(
-    "/skill-versions",
+    "/skills/{slug}/versions",
     operation_id="createSkillVersion",
     summary="Publish an immutable skill version",
     description=(
-        "Create a new immutable skill version from a normalized JSON payload containing "
-        "markdown content, structured metadata, and authored relationships."
+        "Create a new immutable skill version for the slug in the path from a normalized "
+        "JSON payload containing markdown content, structured metadata, and authored "
+        "relationships."
     ),
     response_model=SkillVersionMetadataResponse,
     response_model_exclude_unset=True,
@@ -102,13 +129,20 @@ STATUS_RESPONSES: ApiResponses = {
     },
 )
 def create_skill_version(
+    slug: Annotated[
+        str,
+        Path(pattern=SLUG_PATTERN, description="Stable public slug for the skill identity."),
+    ],
     request: SkillVersionCreateRequest,
     registry_service: SkillRegistryServiceDep,
     caller: PublishCallerDep,
 ) -> SkillVersionMetadataResponse | JSONResponse:
     """Publish one immutable normalized skill version."""
     try:
-        stored = registry_service.publish_version(caller=caller, command=to_create_command(request))
+        stored = registry_service.publish_version(
+            caller=caller,
+            command=to_create_command(slug, request),
+        )
         return to_metadata_response(stored)
     except DuplicateSkillVersionError as exc:
         return error_response(
@@ -116,6 +150,20 @@ def create_skill_version(
             code="DUPLICATE_SKILL_VERSION",
             message=str(exc),
             details={"slug": exc.slug, "version": exc.version},
+        )
+    except SkillAlreadyExistsError as exc:
+        return error_response(
+            status_code=status.HTTP_409_CONFLICT,
+            code="SKILL_ALREADY_EXISTS",
+            message=str(exc),
+            details={"slug": exc.slug},
+        )
+    except SkillNotFoundError as exc:
+        return error_response(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="SKILL_NOT_FOUND",
+            message=str(exc),
+            details={"slug": exc.slug},
         )
     except SkillRegistryError as exc:
         return error_response(

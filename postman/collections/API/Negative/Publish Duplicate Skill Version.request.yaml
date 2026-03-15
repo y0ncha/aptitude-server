@@ -2,7 +2,7 @@ $kind: http-request
 order: 2000
 
 method: POST
-url: '{{baseUrl}}/skill-versions'
+url: '{{baseUrl}}/skills/{{negative_duplicate_slug}}/versions'
 
 headers:
   - key: Accept
@@ -19,7 +19,7 @@ body:
   type: json
   content: |-
     {
-      "slug": "{{negative_duplicate_slug}}",
+      "intent": "publish_version",
       "version": "1.0.0",
       "content": {
         "raw_markdown": "# Duplicate Seed Skill\n\nInitial version used to provoke a duplicate publish.\n",

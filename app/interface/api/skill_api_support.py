@@ -42,10 +42,11 @@ def validation_errors(exc: ValidationError) -> list[dict[str, Any]]:
     return serialize_validation_errors(exc)
 
 
-def to_create_command(request: SkillVersionCreateRequest) -> CreateSkillVersionCommand:
+def to_create_command(slug: str, request: SkillVersionCreateRequest) -> CreateSkillVersionCommand:
     """Translate validated API models into immutable core publish commands."""
     return CreateSkillVersionCommand(
-        slug=request.slug,
+        slug=slug,
+        intent=request.intent,
         version=request.version,
         content=SkillContentInput(
             raw_markdown=request.content.raw_markdown,

@@ -3,7 +3,7 @@ name: Publish Skill v1
 order: 6000
 
 method: POST
-url: "{{baseUrl}}/skill-versions"
+url: "{{baseUrl}}/skills/{{sanity_primary_slug}}/versions"
 
 headers:
   - key: Accept
@@ -20,7 +20,7 @@ body:
   type: json
   content: >-
     {
-      "slug": "{{sanity_primary_slug}}",
+      "intent": "create_skill",
       "version": "{{sanity_version_1}}",
       "content": {
         "raw_markdown": "# Postman Primary Skill v1\n\nRun `{{runId}}` primary skill version 1.\n",
