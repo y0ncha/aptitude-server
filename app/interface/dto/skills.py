@@ -8,6 +8,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.core.governance import LifecycleStatus, TrustTier
+from app.core.skill_models import PublishIntent
 from app.interface.validation import (
     MARKER_PATTERN,
     SEMVER_PATTERN,
@@ -220,13 +221,13 @@ class SkillGovernanceRequest(BaseModel):
 
 
 class SkillVersionCreateRequest(BaseModel):
-    """Normalized JSON publish contract."""
+    """Normalized JSON publish body for one immutable version under a slug path."""
 
-    slug: str = Field(
-        min_length=1,
-        max_length=128,
-        pattern=SLUG_PATTERN,
-        description="Stable public slug for the skill identity.",
+    intent: PublishIntent = Field(
+        description=(
+            "Whether this publish creates a new skill identity or adds a version "
+            "to an existing skill."
+        )
     )
     version: str = Field(
         pattern=SEMVER_PATTERN,

@@ -29,9 +29,9 @@ def _headers(token: str) -> dict[str, str]:
 
 
 def _request(
-    slug: str,
     version: str,
     *,
+    intent: str = "create_skill",
     raw_markdown: str = "# Python Lint\n\nLint Python files.\n",
     name: str = "Python Lint",
     description: str = "Linting skill",
@@ -44,7 +44,7 @@ def _request(
     overlaps_with: list[dict[str, object]] | None = None,
 ) -> dict[str, object]:
     return {
-        "slug": slug,
+        "intent": intent,
         "version": version,
         "content": {
             "raw_markdown": raw_markdown,
@@ -76,11 +76,12 @@ def _request(
 
 def _publish(
     client: TestClient,
+    slug: str,
     payload: dict[str, object],
     *,
     token: str = "publisher-token",
 ) -> dict[str, object]:
-    response = client.post("/skill-versions", json=payload, headers=_headers(token))
+    response = client.post(f"/skills/{slug}/versions", json=payload, headers=_headers(token))
     assert response.status_code == 201, response.text
     return response.json()
 
@@ -149,18 +150,20 @@ def test_publish_discovery_resolution_and_exact_fetch(
     with TestClient(create_app()) as client:
         _publish(
             client,
+            dependency_slug,
             _request(
-                dependency_slug,
                 "1.0.0",
+                intent="create_skill",
                 name="Python Dependency",
                 description="Base dependency",
             ),
         )
         published = _publish(
             client,
+            source_slug,
             _request(
-                source_slug,
                 "2.0.0",
+                intent="create_skill",
                 raw_markdown="# v2\n",
                 name="Python Hard Cut Source",
                 description="Hard cut discovery candidate",
@@ -246,18 +249,20 @@ def test_publish_reuses_digest_backed_content_rows_for_identical_content(
     with TestClient(create_app()) as client:
         first = _publish(
             client,
+            slug,
             _request(
-                slug,
                 "1.0.0",
+                intent="create_skill",
                 raw_markdown="# Shared Content\n",
                 description="First publish of shared content",
             ),
         )
         second = _publish(
             client,
+            slug,
             _request(
-                slug,
                 "2.0.0",
+                intent="publish_version",
                 raw_markdown="# Shared Content\n",
                 description="Second publish of shared content",
             ),
@@ -307,18 +312,20 @@ def test_publish_distinct_content_creates_distinct_rows_and_exact_fetch_returns_
     with TestClient(create_app()) as client:
         first = _publish(
             client,
+            slug,
             _request(
-                slug,
                 "1.0.0",
+                intent="create_skill",
                 raw_markdown="# v1\n",
                 description="First distinct version",
             ),
         )
         second = _publish(
             client,
+            slug,
             _request(
-                slug,
                 "2.0.0",
+                intent="publish_version",
                 raw_markdown="# v2\n",
                 description="Second distinct version",
             ),
@@ -347,17 +354,17 @@ def test_authentication_and_scope_failures_are_enforced(
 ) -> None:
     monkeypatch.setenv("DATABASE_URL", migrated_registry_database)
     slug = f"python.auth.{uuid4().hex}"
-    payload = _request(slug, "1.0.0")
+    payload = _request("1.0.0", intent="create_skill")
 
     with TestClient(create_app()) as client:
-        missing = client.post("/skill-versions", json=payload)
+        missing = client.post(f"/skills/{slug}/versions", json=payload)
         invalid = client.post(
-            "/skill-versions",
+            f"/skills/{slug}/versions",
             json=payload,
             headers=_headers("not-a-real-token"),
         )
         insufficient = client.post(
-            "/skill-versions",
+            f"/skills/{slug}/versions",
             json=payload,
             headers=_headers("reader-token"),
         )
@@ -386,15 +393,15 @@ def test_publish_enforces_trust_tier_policy(
 
     with TestClient(create_app()) as client:
         internal_without_provenance = client.post(
-            "/skill-versions",
-            json=_request(f"python.internal.{suffix}", "1.0.0", trust_tier="internal"),
+            f"/skills/python.internal.{suffix}/versions",
+            json=_request("1.0.0", trust_tier="internal"),
             headers=_headers("publisher-token"),
         )
         verified_without_admin = client.post(
-            "/skill-versions",
+            f"/skills/python.verified.{suffix}/versions",
             json=_request(
-                f"python.verified.{suffix}",
                 "1.0.0",
+                intent="create_skill",
                 trust_tier="verified",
                 provenance={
                     "repo_url": "https://github.com/example/skills",
@@ -405,10 +412,10 @@ def test_publish_enforces_trust_tier_policy(
             headers=_headers("publisher-token"),
         )
         verified_with_admin = client.post(
-            "/skill-versions",
+            f"/skills/python.verified-admin.{suffix}/versions",
             json=_request(
-                f"python.verified-admin.{suffix}",
                 "1.0.0",
+                intent="create_skill",
                 trust_tier="verified",
                 provenance={
                     "repo_url": "https://github.com/example/skills",
@@ -436,8 +443,8 @@ def test_status_transitions_recompute_current_default(
     slug = f"python.lifecycle.{uuid4().hex}"
 
     with TestClient(create_app()) as client:
-        _publish(client, _request(slug, "1.0.0"))
-        _publish(client, _request(slug, "2.0.0"))
+        _publish(client, slug, _request("1.0.0", intent="create_skill"))
+        _publish(client, slug, _request("2.0.0", intent="publish_version"))
 
         deprecated = _update_status(client, slug=slug, version="2.0.0", status="deprecated")
         archived = _update_status(client, slug=slug, version="1.0.0", status="archived")
@@ -470,36 +477,40 @@ def test_governance_applies_to_discovery_resolution_and_exact_fetch(
     with TestClient(create_app()) as client:
         _publish(
             client,
+            published_slug,
             _request(
-                published_slug,
                 "1.0.0",
+                intent="create_skill",
                 name="Python Discovery Published",
                 description="Published discovery candidate",
             ),
         )
         _publish(
             client,
+            deprecated_slug,
             _request(
-                deprecated_slug,
                 "1.0.0",
+                intent="create_skill",
                 name="Python Discovery Deprecated",
                 description="Deprecated discovery candidate",
             ),
         )
         _publish(
             client,
+            archived_slug,
             _request(
-                archived_slug,
                 "1.0.0",
+                intent="create_skill",
                 name="Python Discovery Archived",
                 description="Archived discovery candidate",
             ),
         )
         _publish(
             client,
+            internal_slug,
             _request(
-                internal_slug,
                 "1.0.0",
+                intent="create_skill",
                 name="Python Discovery Internal",
                 description="Internal discovery candidate",
                 trust_tier="internal",
@@ -579,9 +590,10 @@ def test_discovery_queries_search_documents_without_touching_skill_contents(
     with TestClient(create_app()) as client:
         _publish(
             client,
+            slug,
             _request(
-                slug,
                 "1.0.0",
+                intent="create_skill",
                 raw_markdown="# Metadata Only Discovery\n",
                 name="Metadata Only Discovery",
                 description="Search document should satisfy discovery",
@@ -629,10 +641,10 @@ def test_publish_rejects_invalid_dependency_constraint(
 
     with TestClient(create_app()) as client:
         response = client.post(
-            "/skill-versions",
+            f"/skills/{slug}/versions",
             json=_request(
-                slug,
                 "1.0.0",
+                intent="create_skill",
                 depends_on=[{"slug": "python.base", "version_constraint": "latest"}],
             ),
             headers=_headers("publisher-token"),
@@ -652,9 +664,10 @@ def test_publish_backfills_normalized_search_documents_with_governance(
     with TestClient(create_app()) as client:
         _publish(
             client,
+            slug,
             _request(
-                slug,
                 "1.0.0",
+                intent="create_skill",
                 raw_markdown="# Search Doc\n",
                 trust_tier="internal",
                 provenance={
@@ -694,3 +707,41 @@ def test_publish_backfills_normalized_search_documents_with_governance(
             assert row["trust_tier"] == "internal"
     finally:
         engine.dispose()
+
+
+@pytest.mark.integration
+def test_publish_intent_requires_existing_or_missing_slug_as_declared(
+    monkeypatch: pytest.MonkeyPatch,
+    migrated_registry_database: str,
+) -> None:
+    monkeypatch.setenv("DATABASE_URL", migrated_registry_database)
+    slug = f"python.intent.{uuid4().hex}"
+
+    with TestClient(create_app()) as client:
+        create_skill = client.post(
+            f"/skills/{slug}/versions",
+            json=_request("1.0.0", intent="create_skill"),
+            headers=_headers("publisher-token"),
+        )
+        create_again = client.post(
+            f"/skills/{slug}/versions",
+            json=_request("2.0.0", intent="create_skill"),
+            headers=_headers("publisher-token"),
+        )
+        publish_existing = client.post(
+            f"/skills/{slug}/versions",
+            json=_request("2.0.0", intent="publish_version"),
+            headers=_headers("publisher-token"),
+        )
+        publish_missing = client.post(
+            f"/skills/{slug}.missing/versions",
+            json=_request("1.0.0", intent="publish_version"),
+            headers=_headers("publisher-token"),
+        )
+
+    assert create_skill.status_code == 201
+    assert create_again.status_code == 409
+    assert create_again.json()["error"]["code"] == "SKILL_ALREADY_EXISTS"
+    assert publish_existing.status_code == 201
+    assert publish_missing.status_code == 404
+    assert publish_missing.json()["error"]["code"] == "SKILL_NOT_FOUND"

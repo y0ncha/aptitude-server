@@ -34,7 +34,7 @@ The goal is team alignment on boundaries, repo shape, development structure, dep
   - As a platform operator, I want one authoritative server and one database so governance, audit, and operational ownership remain simple while the system is still early-stage.
 
 - **Acceptance Criteria**:
-  - `aptitude-publisher` owns packaging and request assembly for `POST /skill-versions` and `PATCH /skills/{slug}/versions/{version}/status`.
+  - `aptitude-publisher` owns packaging and request assembly for `POST /skills/{slug}/versions` and `PATCH /skills/{slug}/versions/{version}/status`.
   - `aptitude-resolver` owns `POST /discovery`, `GET /resolution/{slug}/{version}`, `GET /skills/{slug}/versions/{version}`, and `GET /skills/{slug}/versions/{version}/content`.
   - `aptitude-server` owns auth enforcement, validation, policy enforcement, immutability checks, persistence, indexing, and audit for both publish and read paths.
   - Prompt-injection and content safety checks that affect registry admission are enforced on the server, even if the publisher runs local prechecks.
@@ -81,7 +81,7 @@ flowchart LR
     Author["Author / CI"] --> Publisher["aptitude-publisher"]
     Consumer["User / MCP / CLI"] --> Resolver["aptitude-resolver"]
 
-    Publisher -->|"POST /skill-versions\nPATCH /status"| Server["aptitude-server"]
+    Publisher -->|"POST /skills/{slug}/versions\nPATCH /status"| Server["aptitude-server"]
     Resolver -->|"POST /discovery\nGET /resolution\nGET /skills/... "| Server
 
     Server --> DB["PostgreSQL"]
@@ -131,7 +131,7 @@ sequenceDiagram
 
     A->>P: Publish command with content + metadata
     P->>P: Local packaging and optional prechecks
-    P->>S: POST /skill-versions
+    P->>S: POST /skills/{slug}/versions
     S->>S: Authenticate, validate, enforce policy
     S->>D: Commit immutable version + metadata + audit
     D-->>S: Commit success

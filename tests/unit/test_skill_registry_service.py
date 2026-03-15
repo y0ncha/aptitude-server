@@ -15,8 +15,10 @@ from app.core.ports import (
 from app.core.skill_registry import (
     CreateSkillVersionCommand,
     DuplicateSkillVersionError,
+    SkillAlreadyExistsError,
     SkillContentInput,
     SkillMetadataInput,
+    SkillNotFoundError,
     SkillRegistryService,
     SkillRelationshipsInput,
 )
@@ -27,6 +29,9 @@ class FakeRegistry:
 
     def __init__(self) -> None:
         self._records: dict[tuple[str, str], StoredSkillVersion] = {}
+
+    def skill_exists(self, *, slug: str) -> bool:
+        return any(record_slug == slug for record_slug, _ in self._records)
 
     def version_exists(self, *, slug: str, version: str) -> bool:
         return (slug, version) in self._records
@@ -119,9 +124,15 @@ class FakeAuditRecorder:
         self.events.append(event_type)
 
 
-def _command(slug: str, version: str) -> CreateSkillVersionCommand:
+def _command(
+    slug: str,
+    version: str,
+    *,
+    intent: str = "create_skill",
+) -> CreateSkillVersionCommand:
     return CreateSkillVersionCommand(
         slug=slug,
+        intent=intent,
         version=version,
         content=SkillContentInput(raw_markdown="# Python Lint\n"),
         metadata=SkillMetadataInput(
@@ -176,3 +187,39 @@ def test_publish_version_rejects_duplicates() -> None:
 
     with pytest.raises(DuplicateSkillVersionError):
         service.publish_version(caller=_publish_caller(), command=command)
+
+
+@pytest.mark.unit
+def test_create_skill_intent_rejects_existing_slug() -> None:
+    registry = FakeRegistry()
+    service = SkillRegistryService(
+        registry=registry,
+        audit_recorder=FakeAuditRecorder(),
+        governance_policy=_governance_policy(),
+    )
+    service.publish_version(
+        caller=_publish_caller(),
+        command=_command(slug="python.lint", version="1.0.0", intent="create_skill"),
+    )
+
+    with pytest.raises(SkillAlreadyExistsError):
+        service.publish_version(
+            caller=_publish_caller(),
+            command=_command(slug="python.lint", version="2.0.0", intent="create_skill"),
+        )
+
+
+@pytest.mark.unit
+def test_publish_version_intent_rejects_missing_slug() -> None:
+    registry = FakeRegistry()
+    service = SkillRegistryService(
+        registry=registry,
+        audit_recorder=FakeAuditRecorder(),
+        governance_policy=_governance_policy(),
+    )
+
+    with pytest.raises(SkillNotFoundError):
+        service.publish_version(
+            caller=_publish_caller(),
+            command=_command(slug="python.lint", version="1.0.0", intent="publish_version"),
+        )

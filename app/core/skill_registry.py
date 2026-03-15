@@ -27,11 +27,14 @@ from app.core.skill_models import (
     SHA256_ALGORITHM,
     CreateSkillVersionCommand,
     DuplicateSkillVersionError,
+    PublishIntent,
+    SkillAlreadyExistsError,
     SkillChecksum,
     SkillContentDocument,
     SkillContentInput,
     SkillMetadata,
     SkillMetadataInput,
+    SkillNotFoundError,
     SkillRegistryError,
     SkillRelationshipSelector,
     SkillRelationshipsInput,
@@ -45,8 +48,10 @@ __all__ = [
     "SHA256_ALGORITHM",
     "CreateSkillVersionCommand",
     "DuplicateSkillVersionError",
+    "PublishIntent",
     "ProvenanceMetadata",
     "SkillChecksum",
+    "SkillAlreadyExistsError",
     "SkillContentDocument",
     "SkillContentInput",
     "SkillGovernanceInput",
@@ -56,6 +61,7 @@ __all__ = [
     "SkillRelationshipSelector",
     "SkillRelationshipsInput",
     "SkillVersionDetail",
+    "SkillNotFoundError",
     "SkillVersionNotFoundError",
     "SkillVersionStatusUpdate",
 ]
@@ -89,6 +95,7 @@ class SkillRegistryService:
             caller=caller,
             governance=command.governance,
         )
+        self._enforce_publish_intent(intent=command.intent, slug=command.slug)
 
         content_bytes = command.content.raw_markdown.encode("utf-8")
         checksum_digest = hashlib.sha256(content_bytes).hexdigest()
@@ -140,6 +147,15 @@ class SkillRegistryService:
             },
         )
         return to_skill_version_detail(stored=stored)
+
+    def _enforce_publish_intent(self, *, intent: PublishIntent, slug: str) -> None:
+        skill_exists = self._registry.skill_exists(slug=slug)
+        if intent == "create_skill":
+            if skill_exists:
+                raise SkillAlreadyExistsError(slug=slug)
+            return
+        if not skill_exists:
+            raise SkillNotFoundError(slug=slug)
 
     def update_version_status(
         self,

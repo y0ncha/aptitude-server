@@ -14,7 +14,7 @@ Public routes:
 
 - `GET /healthz`
 - `GET /readyz`
-- `POST /skill-versions`
+- `POST /skills/{slug}/versions`
 - `POST /discovery`
 - `GET /resolution/{slug}/{version}`
 - `GET /skills/{slug}/versions/{version}`
@@ -60,6 +60,8 @@ Common codes:
 - `AUTHENTICATION_REQUIRED`
 - `INVALID_AUTH_TOKEN`
 - `INSUFFICIENT_SCOPE`
+- `SKILL_ALREADY_EXISTS`
+- `SKILL_NOT_FOUND`
 - `SKILL_VERSION_NOT_FOUND`
 - `POLICY_*`
 
@@ -108,7 +110,7 @@ Publish and exact metadata fetch return the same immutable metadata envelope:
 | --- | --- | --- | --- | --- |
 | `GET` | `/healthz` | none | `200` | Liveness probe |
 | `GET` | `/readyz` | none | `200` or `503` | Dependency readiness probe |
-| `POST` | `/skill-versions` | `publish` | `201` | Publish one immutable `slug@version` |
+| `POST` | `/skills/{slug}/versions` | `publish` | `201` | Publish one immutable `slug@version` |
 | `POST` | `/discovery` | `read` | `200` | Returns ordered candidate `slug` values only |
 | `GET` | `/resolution/{slug}/{version}` | `read` | `200` | Returns direct authored `depends_on` only |
 | `GET` | `/skills/{slug}/versions/{version}` | `read` | `200` | Returns immutable metadata for one exact coordinate |
@@ -200,10 +202,11 @@ Rules:
 - The body is the raw stored markdown; metadata stays on the metadata route.
 - Read policy matches the metadata exact-read route.
 
-### `POST /skill-versions`
+### `POST /skills/{slug}/versions`
 
 Publishes one immutable `slug@version` with:
 
+- required `intent`
 - markdown content
 - structured metadata
 - governance metadata
@@ -211,7 +214,11 @@ Publishes one immutable `slug@version` with:
 
 Notes:
 
+- `intent` must be one of:
+  - `create_skill`: the slug must not exist yet or the server returns `409 SKILL_ALREADY_EXISTS`
+  - `publish_version`: the slug must already exist or the server returns `404 SKILL_NOT_FOUND`
 - `depends_on` items must provide exactly one of `version` or `version_constraint`.
+- The `slug` comes from the path; the JSON body carries versioned content and metadata only.
 - `internal` publish requires provenance.
 - `verified` publish requires provenance and `admin`.
 - Success returns metadata only, not embedded markdown or relationship graphs.

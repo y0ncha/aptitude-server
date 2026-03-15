@@ -20,7 +20,7 @@
 
 - **Current Status**:
   - FastAPI service is implemented with PostgreSQL-backed publish, discovery, public resolution, exact fetch, lifecycle, auth, and audit paths.
-  - The current HTTP surface uses concrete routes such as `POST /skill-versions`, `POST /discovery`, and `GET /skills/{slug}/versions/{version}`.
+  - The current HTTP surface uses concrete routes such as `POST /skills/{slug}/versions`, `POST /discovery`, and `GET /skills/{slug}/versions/{version}`.
   - Digest-backed `ETag` emission on exact content fetch is implemented.
   - Full conditional-read behavior with `If-None-Match` returning `304 Not Modified` is not yet documented as implemented behavior.
 - **Planned State**:
@@ -42,8 +42,9 @@
   - As a service operator, I want audit trails and operational telemetry so incidents are diagnosable and policy violations are traceable.
 
 - **Acceptance Criteria**:
-  - The publish capability validates manifest schema, integrity fields, direct relationship selectors, trust-tier rules, and lifecycle requirements before accepting a new immutable version.
+  - The publish capability validates publish intent, manifest schema, integrity fields, direct relationship selectors, trust-tier rules, and lifecycle requirements before accepting a new immutable version.
   - Publishing an existing `(slug, version)` returns a conflict and does not mutate stored metadata or artifacts.
+  - `intent=create_skill` rejects existing slugs and `intent=publish_version` rejects missing slugs.
   - Published versions persist direct dependency declarations exactly as authored; the server does not compute resolved dependency closures.
   - The discovery capability accepts `name`, optional `description`, and optional `tags`, and returns ordered candidate slugs only.
   - Discovery ordering remains deterministic, but explanation fields and final candidate choice stay outside the public server contract.
@@ -61,7 +62,7 @@
 ### Current Status vs Planned State (March 15, 2026)
 
 - **Current Status**:
-  - Publish is implemented at `POST /skill-versions`.
+  - Publish is implemented at `POST /skills/{slug}/versions`.
   - Discovery is implemented at `POST /discovery`.
   - Immutable metadata and content fetch are implemented as exact `GET` routes.
   - Direct dependency reads are implemented at `GET /resolution/{slug}/{version}`.
