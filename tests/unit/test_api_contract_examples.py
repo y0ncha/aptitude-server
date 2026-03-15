@@ -15,6 +15,8 @@ from app.interface.dto.examples import (
     INVALID_REQUEST_ERROR_EXAMPLE,
     PUBLISH_REQUEST_EXAMPLE,
     RESOLUTION_RESPONSE_EXAMPLE,
+    SKILL_ALREADY_EXISTS_ERROR_EXAMPLE,
+    SKILL_NOT_FOUND_ERROR_EXAMPLE,
     SKILL_VERSION_METADATA_RESPONSE_EXAMPLE,
     SKILL_VERSION_NOT_FOUND_ERROR_EXAMPLE,
     SKILL_VERSION_STATUS_RESPONSE_EXAMPLE,
@@ -33,7 +35,8 @@ from app.interface.dto.skills import (
 def test_publish_request_example_matches_request_contract() -> None:
     request = SkillVersionCreateRequest.model_validate(PUBLISH_REQUEST_EXAMPLE)
 
-    assert request.slug == "python.lint"
+    assert request.intent == "create_skill"
+    assert request.version == "1.2.3"
     assert request.relationships.depends_on
 
 
@@ -70,6 +73,8 @@ def test_success_examples_match_response_contracts(
     [
         INVALID_REQUEST_ERROR_EXAMPLE,
         DUPLICATE_SKILL_VERSION_ERROR_EXAMPLE,
+        SKILL_ALREADY_EXISTS_ERROR_EXAMPLE,
+        SKILL_NOT_FOUND_ERROR_EXAMPLE,
         SKILL_VERSION_NOT_FOUND_ERROR_EXAMPLE,
         CONTENT_STORAGE_FAILURE_ERROR_EXAMPLE,
     ],

@@ -36,7 +36,7 @@ adapter layer between FastAPI and core services.
   exact coordinate.
 - `GET /skills/{slug}/versions/{version}/content`: immutable markdown fetch for
   one exact coordinate.
-- `POST /skill-versions`: immutable skill version publication.
+- `POST /skills/{slug}/versions`: immutable skill version publication.
 - `PATCH /skills/{slug}/versions/{version}/status`: lifecycle-status transition
   for one immutable version.
 
@@ -48,6 +48,9 @@ translate results into public DTOs without embedding business policy.
 policy violations, and explicit API errors share one JSON shape.
 `skill_api_support.py` centralizes mapping code so route handlers do not
 duplicate DTO conversion or publish-command assembly.
+`POST /skills/{slug}/versions` requires `intent=create_skill|publish_version`
+so the API can distinguish first publication from publication to an existing
+skill slug.
 `POST /discovery` is candidate generation only and does not choose final
 matches, solve dependencies, or plan execution.
 `GET /resolution/{slug}/{version}` returns direct authored dependencies only;

@@ -190,7 +190,7 @@ This separation is required for speed and scalability.
 
 The server must expose registry-oriented contracts such as:
 
-- `POST /skill-versions`
+- `POST /skills/{slug}/versions`
 - `POST /discovery`
 - `GET /resolution/{slug}/{version}`
 - `GET /skills/{slug}/versions/{version}`
@@ -204,6 +204,10 @@ not add sibling public read route families or compatibility aliases.
 `POST /discovery` should be designed for candidate generation, not final
 decision making. It should accept structured search input and return stable slug
 ordering without embedding final selection or dependency-solving semantics.
+
+`POST /skills/{slug}/versions` remains the only publish route, but callers must
+declare `intent=create_skill` or `intent=publish_version` so the server can
+distinguish first publication from publication to an existing slug.
 
 ### client APIs
 

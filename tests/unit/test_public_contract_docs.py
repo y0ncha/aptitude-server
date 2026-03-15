@@ -44,6 +44,10 @@ def test_current_contract_docs_do_not_reintroduce_removed_public_read_routes(
 def test_api_contract_documents_the_frozen_public_read_surface() -> None:
     document = (REPO_ROOT / "docs/api-contract.md").read_text()
 
+    assert "POST /skills/{slug}/versions" in document
+    assert "POST /skill-versions" not in document
+    assert "create_skill" in document
+    assert "publish_version" in document
     assert "GET /resolution/{slug}/{version}" in document
     assert "GET /skills/{slug}/versions/{version}" in document
     assert "GET /skills/{slug}/versions/{version}/content" in document

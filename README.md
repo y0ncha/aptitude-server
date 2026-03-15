@@ -79,13 +79,14 @@ HTTP surface implements those capabilities with the following routes:
 - `GET /resolution/{slug}/{version}`
 - `POST /fetch/metadata:batch`
 - `POST /fetch/content:batch`
-- `POST /skill-versions`
+- `POST /skills/{slug}/versions`
 - `PATCH /skills/{slug}/versions/{version}/status`
 
 Notes:
 
 - All non-health endpoints require `Authorization: Bearer <token>`.
-- `POST /skill-versions` is the current publish route for immutable version creation.
+- `POST /skills/{slug}/versions` is the current publish route for immutable version creation.
+- Publish requests must declare `intent=create_skill` or `intent=publish_version`.
 - `POST /discovery` is a discovery-only candidate-generation endpoint that returns slug
   candidates only.
 - `GET /resolution/{slug}/{version}` returns only direct authored `depends_on`

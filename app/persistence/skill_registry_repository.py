@@ -56,6 +56,11 @@ class SQLAlchemySkillRegistryRepository(
     def __init__(self, session_factory: sessionmaker[Session]) -> None:
         self._session_factory = session_factory
 
+    def skill_exists(self, *, slug: str) -> bool:
+        with self._session_factory() as session:
+            statement = select(Skill.id).where(Skill.slug == slug).limit(1)
+            return session.execute(statement).scalar_one_or_none() is not None
+
     def version_exists(self, *, slug: str, version: str) -> bool:
         with self._session_factory() as session:
             statement = (

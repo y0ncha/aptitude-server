@@ -13,7 +13,7 @@ from app.interface.dto.skills import (
 
 def _request() -> dict[str, object]:
     return {
-        "slug": "python.lint",
+        "intent": "create_skill",
         "version": "1.2.3",
         "content": {"raw_markdown": "# Python Lint\n"},
         "metadata": {"name": "Python Lint", "tags": ["python", "lint"]},
@@ -41,7 +41,8 @@ def test_publish_request_accepts_all_relationship_families() -> None:
         }
     )
 
-    assert request.slug == "python.lint"
+    assert request.intent == "create_skill"
+    assert request.version == "1.2.3"
     assert request.relationships.depends_on[0].version == "1.0.0"
     assert request.relationships.conflicts_with[0].slug == "ruby.lint"
 
@@ -128,6 +129,21 @@ def test_publish_request_rejects_invalid_dependency_constraint_syntax() -> None:
 def test_publish_request_rejects_unknown_fields() -> None:
     with pytest.raises(ValidationError):
         SkillVersionCreateRequest.model_validate({**_request(), "extra_field": "not allowed"})
+
+
+@pytest.mark.unit
+def test_publish_request_requires_intent() -> None:
+    payload = _request()
+    payload.pop("intent")
+
+    with pytest.raises(ValidationError):
+        SkillVersionCreateRequest.model_validate(payload)
+
+
+@pytest.mark.unit
+def test_publish_request_rejects_unknown_intent() -> None:
+    with pytest.raises(ValidationError):
+        SkillVersionCreateRequest.model_validate({**_request(), "intent": "implicit"})
 
 
 @pytest.mark.unit

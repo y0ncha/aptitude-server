@@ -27,11 +27,14 @@ from app.core.skill_models import (
     SHA256_ALGORITHM,
     CreateSkillVersionCommand,
     DuplicateSkillVersionError,
+    PublishIntent,
+    SkillAlreadyExistsError,
     SkillChecksum,
     SkillContentDocument,
     SkillContentInput,
     SkillMetadata,
     SkillMetadataInput,
+    SkillNotFoundError,
     SkillRegistryError,
     SkillRelationshipSelector,
     SkillRelationshipsInput,
@@ -45,8 +48,10 @@ __all__ = [
     "SHA256_ALGORITHM",
     "CreateSkillVersionCommand",
     "DuplicateSkillVersionError",
+    "PublishIntent",
     "ProvenanceMetadata",
     "SkillChecksum",
+    "SkillAlreadyExistsError",
     "SkillContentDocument",
     "SkillContentInput",
     "SkillGovernanceInput",
@@ -56,6 +61,7 @@ __all__ = [
     "SkillRelationshipSelector",
     "SkillRelationshipsInput",
     "SkillVersionDetail",
+    "SkillNotFoundError",
     "SkillVersionNotFoundError",
     "SkillVersionStatusUpdate",
 ]
@@ -82,13 +88,14 @@ class SkillRegistryService:
         command: CreateSkillVersionCommand,
     ) -> SkillVersionDetail:
         """Publish one immutable normalized version."""
-        if self._registry.version_exists(slug=command.slug, version=command.version):
-            raise DuplicateSkillVersionError(slug=command.slug, version=command.version)
-
         self._governance_policy.evaluate_publish(
             caller=caller,
             governance=command.governance,
         )
+        self._enforce_publish_intent(intent=command.intent, slug=command.slug)
+
+        if self._registry.version_exists(slug=command.slug, version=command.version):
+            raise DuplicateSkillVersionError(slug=command.slug, version=command.version)
 
         content_bytes = command.content.raw_markdown.encode("utf-8")
         checksum_digest = hashlib.sha256(content_bytes).hexdigest()
@@ -126,6 +133,13 @@ class SkillRegistryService:
         except DuplicateSkillVersionError:
             raise
         except SkillRegistryPersistenceError as exc:
+            # Handle potential race between _enforce_publish_intent() and persistence layer.
+            # Under concurrent intent="create_skill" publishes for the same slug, the DB
+            # unique constraint on skills.slug may be violated even though the initial
+            # skill_exists() check passed. In that case, surface SkillAlreadyExistsError
+            # to keep the public contract consistent.
+            if command.intent == "create_skill" and self._is_slug_unique_violation(exc):
+                raise SkillAlreadyExistsError(slug=command.slug) from exc
             raise SkillRegistryError("Failed to persist immutable skill version.") from exc
 
         self._audit_recorder.record_event(
@@ -140,6 +154,45 @@ class SkillRegistryService:
             },
         )
         return to_skill_version_detail(stored=stored)
+
+    def _enforce_publish_intent(self, *, intent: PublishIntent, slug: str) -> None:
+        skill_exists = self._registry.skill_exists(slug=slug)
+        if intent == "create_skill":
+            if skill_exists:
+                raise SkillAlreadyExistsError(slug=slug)
+            return
+        if not skill_exists:
+            raise SkillNotFoundError(slug=slug)
+
+    def _is_slug_unique_violation(
+        self,
+        exc: SkillRegistryPersistenceError,
+    ) -> bool:
+        """Best-effort detection of a unique-constraint violation on skills.slug.
+
+        The exact structure of SkillRegistryPersistenceError is implementation-specific,
+        so we conservatively inspect the exception message (and any nested cause) for
+        indicators of both a uniqueness violation and the slug field.
+        """
+        # Start with the direct exception message.
+        messages: list[str] = [str(exc)]
+
+        # If the port attaches an underlying cause, include its message as well.
+        cause = getattr(exc, "cause", None)
+        if cause is None:
+            cause = getattr(exc, "__cause__", None)
+        if cause is not None:
+            messages.append(str(cause))
+
+        combined = " ".join(messages).lower()
+
+        # Heuristics: look for typical uniqueness indicators and the slug field name.
+        has_unique_indicator = any(
+            token in combined for token in ("unique", "duplicate", "constraint")
+        )
+        mentions_slug = "slug" in combined
+
+        return has_unique_indicator and mentions_slug
 
     def update_version_status(
         self,

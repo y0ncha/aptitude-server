@@ -199,6 +199,9 @@ class SkillRegistryPersistenceError(RuntimeError):
 class SkillRegistryPort(Protocol):
     """Persistence contract for immutable skill version records."""
 
+    def skill_exists(self, *, slug: str) -> bool:
+        """Return whether a skill identity already exists."""
+
     def version_exists(self, *, slug: str, version: str) -> bool:
         """Return whether a skill version already exists."""
 
