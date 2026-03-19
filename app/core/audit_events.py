@@ -41,7 +41,7 @@ def build_publish_audit_event(
             slug=slug,
             version=version,
             trust_tier=trust_tier,
-            lifecycle_status="published",
+            lifecycle_status="published" if outcome == "allowed" else None,
             surface="publish",
             reason_code=reason_code,
             provenance=provenance,
