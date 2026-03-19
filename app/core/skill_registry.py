@@ -126,7 +126,6 @@ class SkillRegistryService:
                     version=command.version,
                     content=ContentRecordInput(
                         raw_markdown=command.content.raw_markdown,
-                        rendered_summary=command.content.rendered_summary,
                         size_bytes=len(content_bytes),
                         checksum_digest=checksum_digest,
                     ),

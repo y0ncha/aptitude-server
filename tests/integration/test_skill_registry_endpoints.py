@@ -48,7 +48,6 @@ def _request(
         "version": version,
         "content": {
             "raw_markdown": raw_markdown,
-            "rendered_summary": "Lint Python files.",
         },
         "metadata": {
             "name": name,
@@ -218,6 +217,7 @@ def test_publish_discovery_resolution_and_exact_fetch(
 
     assert "relationships" not in published
     assert "content_download_path" not in published
+    assert "rendered_summary" not in published["content"]
 
     assert discovery.status_code == 200
     assert discovery.json()["candidates"] == [source_slug]
@@ -244,6 +244,7 @@ def test_publish_discovery_resolution_and_exact_fetch(
     assert metadata_body["version"] == "2.0.0"
     assert "relationships" not in metadata_body
     assert "content_download_path" not in metadata_body
+    assert "rendered_summary" not in metadata_body["content"]
     assert metadata_body["provenance"] == {
         "repo_url": "https://github.com/example/skills",
         "commit_sha": "aabbccddeeff00112233445566778899aabbccdd",
@@ -262,6 +263,26 @@ def test_publish_discovery_resolution_and_exact_fetch(
     assert content.headers["Cache-Control"] == "public, immutable"
     assert content.headers["Content-Length"] == str(len(b"# v2\n"))
     assert content.text == "# v2\n"
+
+
+@pytest.mark.integration
+def test_publish_rejects_rendered_summary_field(
+    monkeypatch: pytest.MonkeyPatch,
+    migrated_registry_database: str,
+) -> None:
+    monkeypatch.setenv("DATABASE_URL", migrated_registry_database)
+
+    with TestClient(create_app()) as client:
+        payload = _request("1.0.0")
+        payload["content"]["rendered_summary"] = "Legacy summary field"
+
+        response = client.post(
+            "/skills/python.legacy-summary/versions",
+            json=payload,
+            headers=_headers("publisher-token"),
+        )
+
+    assert response.status_code == 422, response.text
 
 
 @pytest.mark.integration

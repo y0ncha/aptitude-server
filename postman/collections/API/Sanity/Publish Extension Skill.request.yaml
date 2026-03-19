@@ -22,8 +22,7 @@ body:
       "intent": "create_skill",
       "version": "{{sanity_version_1}}",
       "content": {
-        "raw_markdown": "# Postman Extension Skill\n\nRun `{{runId}}` extension version 1.\n",
-        "rendered_summary": "Postman extension skill."
+        "raw_markdown": "# Postman Extension Skill\n\nRun `{{runId}}` extension version 1.\n"
       },
       "metadata": {
         "name": "Postman Extension Skill",

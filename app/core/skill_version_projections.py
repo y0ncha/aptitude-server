@@ -27,7 +27,6 @@ def to_skill_version_detail(*, stored: StoredSkillVersion) -> SkillVersionDetail
                 digest=stored.content_checksum_digest,
             ),
             size_bytes=stored.content_size_bytes,
-            rendered_summary=stored.rendered_summary,
         ),
         metadata=SkillMetadata(
             name=stored.name,

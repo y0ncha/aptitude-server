@@ -56,7 +56,6 @@ def upgrade() -> None:
         "skill_contents",
         sa.Column("id", sa.BigInteger(), primary_key=True, autoincrement=True),
         sa.Column("raw_markdown", sa.Text(), nullable=False),
-        sa.Column("rendered_summary", sa.Text(), nullable=True),
         sa.Column("storage_size_bytes", sa.BigInteger(), nullable=False),
         sa.Column("checksum_digest", sa.String(length=64), nullable=False, unique=True),
     )

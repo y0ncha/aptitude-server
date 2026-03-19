@@ -75,7 +75,6 @@ def _stored_version(*, lifecycle_status: str = "published") -> StoredSkillVersio
         version_checksum_digest="version-digest",
         content_checksum_digest="content-digest",
         content_size_bytes=18,
-        rendered_summary="Lint Python files.",
         name="Python Lint",
         description="Linting skill",
         tags=("python", "lint"),

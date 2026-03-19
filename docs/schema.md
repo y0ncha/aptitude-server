@@ -138,7 +138,6 @@ Authoritative markdown body storage.
 | --- | --- | --- | --- |
 | `id` | `bigint` | PK | Internal content key |
 | `raw_markdown` | `text` | `NOT NULL` | Canonical skill markdown body |
-| `rendered_summary` | `text` | nullable | Optional pre-rendered short summary |
 | `storage_size_bytes` | `bigint` | `NOT NULL` | Observed body size for planning and diagnostics |
 | `checksum_digest` | `varchar(64)` | `NOT NULL`, unique | Content digest for deduplication and integrity |
 
@@ -156,7 +155,7 @@ Structured, queryable metadata for discovery and ranking.
 | --- | --- | --- | --- |
 | `id` | `bigint` | PK | Internal metadata key |
 | `name` | `text` | `NOT NULL` | Display name |
-| `description` | `text` | nullable | Searchable short description |
+| `description` | `text` | nullable | Canonical author-owned short description used for discovery and exact metadata reads |
 | `tags` | `text[]` | `NOT NULL`, default empty array | Primary categorical filters |
 | `headers` | `jsonb` | nullable | Flexible header-like attributes |
 | `inputs_schema` | `jsonb` | nullable | Structured input contract |

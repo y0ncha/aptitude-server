@@ -16,8 +16,11 @@ metadata-oriented intelligence work.
   advisory search, provenance validation, transactional mutation audit, and dependency providers.
 - `app/interface/`: API interface boundary for publish, discovery, exact dependency reads, and exact metadata/content fetch.
 - `app/persistence/`: database/artifact adapters and ORM models for immutable
-  manifests, advisory provenance snapshots, dependency declaration projections, search read models, and transactional mutation audit writes.
+manifests, advisory provenance snapshots, dependency declaration projections, search read models, and transactional mutation audit writes.
 - `app/intelligence/`: search-ranking helpers and future metadata/graph intelligence.
+
+The canonical short summary for a skill now lives on `metadata.description`;
+content rows store only markdown plus checksum/size metadata.
 
 ## Update Rule
 

@@ -154,6 +154,20 @@ def test_publish_request_rejects_unknown_fields() -> None:
 
 
 @pytest.mark.unit
+def test_publish_request_rejects_rendered_summary_field() -> None:
+    with pytest.raises(ValidationError):
+        SkillVersionCreateRequest.model_validate(
+            {
+                **_request(),
+                "content": {
+                    "raw_markdown": "# Python Lint\n",
+                    "rendered_summary": "Legacy summary field",
+                },
+            }
+        )
+
+
+@pytest.mark.unit
 def test_publish_request_requires_intent() -> None:
     payload = _request()
     payload.pop("intent")

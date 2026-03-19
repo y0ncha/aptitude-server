@@ -22,8 +22,7 @@ body:
       "intent": "create_skill",
       "version": "{{sanity_version_1}}",
       "content": {
-        "raw_markdown": "# Postman Overlap Skill\n\nRun `{{runId}}` overlap version 1.\n",
-        "rendered_summary": "Postman overlap skill."
+        "raw_markdown": "# Postman Overlap Skill\n\nRun `{{runId}}` overlap version 1.\n"
       },
       "metadata": {
         "name": "Postman Overlap Skill",

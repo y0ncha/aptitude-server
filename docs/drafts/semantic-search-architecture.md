@@ -166,7 +166,6 @@ Recommended source text:
 - `name`
 - `description`
 - `tags`
-- `rendered_summary`
 
 Do not embed full `raw_markdown` in the first version.
 
@@ -180,7 +179,7 @@ Reasons:
 Suggested source construction:
 
 ```text
-slug + "\n" + name + "\n" + description + "\n" + rendered_summary + "\n" + tags...
+slug + "\n" + name + "\n" + description + "\n" + tags...
 ```
 
 The source text should be normalized deterministically and hashed so reindex

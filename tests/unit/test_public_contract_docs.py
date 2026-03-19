@@ -16,13 +16,13 @@ REMOVED_PUBLIC_READ_ROUTE_MARKERS = (
 )
 
 CURRENT_CONTRACT_DOCS = (
-    REPO_ROOT / "docs/api-contract.md",
-    REPO_ROOT / "docs/scope.md",
+    REPO_ROOT / "docs/project/api-contract.md",
+    REPO_ROOT / "docs/project/scope.md",
     REPO_ROOT / "docs/prd.md",
     REPO_ROOT / ".agents/plans/roadmap.md",
 )
 
-FROZEN_FUTURE_PLAN_DOCS = tuple(sorted((REPO_ROOT / ".agents/plans").glob("1[0-4]-*.md")))
+FROZEN_FUTURE_PLAN_DOCS = tuple(sorted((REPO_ROOT / ".agents/plans").glob("1[0-5]-*.md")))
 
 
 @pytest.mark.unit
@@ -42,7 +42,7 @@ def test_current_contract_docs_do_not_reintroduce_removed_public_read_routes(
 
 @pytest.mark.unit
 def test_api_contract_documents_the_frozen_public_read_surface() -> None:
-    document = (REPO_ROOT / "docs/api-contract.md").read_text()
+    document = (REPO_ROOT / "docs/project/api-contract.md").read_text()
 
     assert "POST /skills/{slug}/versions" in document
     assert "POST /skill-versions" not in document
@@ -59,5 +59,5 @@ def test_api_contract_documents_the_frozen_public_read_surface() -> None:
 def test_roadmap_freezes_the_public_read_route_families_for_later_plans() -> None:
     document = (REPO_ROOT / ".agents/plans/roadmap.md").read_text()
 
-    assert "Plans 09-14 keep the public route families fixed" in document
+    assert "Plans 09-15 keep the public route families fixed" in document
     assert "publish, discovery, resolution, exact metadata fetch, exact content fetch" in document

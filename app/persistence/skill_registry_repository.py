@@ -390,7 +390,6 @@ class SQLAlchemySkillRegistryRepository(
 
         created = SkillContent(
             raw_markdown=record.content.raw_markdown,
-            rendered_summary=record.content.rendered_summary,
             storage_size_bytes=record.content.size_bytes,
             checksum_digest=record.content.checksum_digest,
         )

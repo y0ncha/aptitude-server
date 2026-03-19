@@ -178,7 +178,6 @@ def to_stored_skill_version(entity: SkillVersion) -> StoredSkillVersion:
         version_checksum_digest=entity.checksum_digest,
         content_checksum_digest=entity.content.checksum_digest,
         content_size_bytes=entity.content.storage_size_bytes,
-        rendered_summary=entity.content.rendered_summary,
         name=entity.metadata_row.name,
         description=entity.metadata_row.description,
         tags=tuple(entity.metadata_row.tags),

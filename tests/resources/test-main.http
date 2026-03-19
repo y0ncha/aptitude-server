@@ -41,8 +41,7 @@ Authorization: Bearer {{publisherToken}}
   "intent": "create_skill",
   "version": "{{version}}",
   "content": {
-    "raw_markdown": "# Sanity Skill Stub\n\nManual frozen-contract check.\n",
-    "rendered_summary": "Manual frozen-contract check."
+    "raw_markdown": "# Sanity Skill Stub\n\nManual frozen-contract check.\n"
   },
   "metadata": {
     "name": "Sanity Skill Stub",

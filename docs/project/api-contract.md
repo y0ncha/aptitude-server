@@ -23,7 +23,7 @@ Public routes:
 
 ## Freeze Rule
 
-This route set is the frozen public registry baseline for Plans 09-14.
+This route set is the frozen public registry baseline for Plans 09-15.
 
 - Resolution remains a first-class public exact-read surface.
 - Exact fetch stays singular and coordinate-based through:
@@ -85,8 +85,7 @@ Publish and exact metadata fetch return the same immutable metadata envelope:
   "version_checksum": {"algorithm": "sha256", "digest": "..."},
   "content": {
     "checksum": {"algorithm": "sha256", "digest": "..."},
-    "size_bytes": 123,
-    "rendered_summary": "Lint Python files consistently."
+    "size_bytes": 123
   },
   "metadata": {
     "name": "Python Lint",

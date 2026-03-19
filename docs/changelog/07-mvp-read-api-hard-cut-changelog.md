@@ -111,7 +111,6 @@ This milestone does not add a new schema migration. The tables below are the exi
 | Field | Type | Nullable | Default / Constraint | Role |
 | --- | --- | --- | --- | --- |
 | `raw_markdown` | `text` | No | Required | Stores the canonical markdown body emitted in `multipart/mixed` content fetch parts. |
-| `rendered_summary` | `text` | Yes | Optional | Supplies the short summary returned in immutable metadata envelopes without returning the whole body. |
 | `storage_size_bytes` | `bigint` | No | Required | Backs the content summary size field and the multipart `Content-Length` header. |
 | `checksum_digest` | `string(64)` | No | Unique | Supplies the immutable content checksum used as the multipart `ETag`. |
 

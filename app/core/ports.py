@@ -37,7 +37,6 @@ class ContentRecordInput:
     """Normalized markdown body persisted for one immutable version."""
 
     raw_markdown: str
-    rendered_summary: str | None
     size_bytes: int
     checksum_digest: str
 
@@ -113,7 +112,6 @@ class StoredSkillVersion:
     version_checksum_digest: str
     content_checksum_digest: str
     content_size_bytes: int
-    rendered_summary: str | None
     name: str
     description: str | None
     tags: tuple[str, ...]

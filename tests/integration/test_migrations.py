@@ -1,4 +1,4 @@
-"""Integration coverage for the canonical Alembic schema baseline."""
+"""Integration coverage for the canonical clean Alembic schema baseline."""
 
 from __future__ import annotations
 
@@ -34,6 +34,7 @@ def test_migrations_upgrade_and_downgrade(clean_integration_database: str) -> No
 
         skill_columns = {column["name"] for column in inspector.get_columns("skills")}
         version_columns = {column["name"] for column in inspector.get_columns("skill_versions")}
+        content_columns = {column["name"] for column in inspector.get_columns("skill_contents")}
         search_columns = {
             column["name"] for column in inspector.get_columns("skill_search_documents")
         }
@@ -51,6 +52,7 @@ def test_migrations_upgrade_and_downgrade(clean_integration_database: str) -> No
             "provenance_publisher_identity",
             "policy_profile_at_publish",
         } <= version_columns
+        assert "rendered_summary" not in content_columns
 
         assert {"lifecycle_status", "trust_tier"} <= search_columns
     finally:

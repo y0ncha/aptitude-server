@@ -50,10 +50,7 @@ def to_create_command(slug: str, request: SkillVersionCreateRequest) -> CreateSk
         slug=slug,
         intent=request.intent,
         version=request.version,
-        content=SkillContentInput(
-            raw_markdown=request.content.raw_markdown,
-            rendered_summary=request.content.rendered_summary,
-        ),
+        content=SkillContentInput(raw_markdown=request.content.raw_markdown),
         metadata=SkillMetadataInput(
             name=request.metadata.name,
             description=request.metadata.description,
@@ -87,11 +84,7 @@ def to_metadata_response(detail: SkillVersionDetail) -> SkillVersionMetadataResp
         slug=detail.slug,
         version=detail.version,
         version_checksum=_checksum_response(detail.version_checksum),
-        content=_content_summary_response(
-            detail.content.checksum,
-            detail.content.size_bytes,
-            detail.content.rendered_summary,
-        ),
+        content=_content_summary_response(detail.content.checksum, detail.content.size_bytes),
         metadata=_metadata_response(detail.metadata),
         lifecycle_status=detail.lifecycle_status,
         trust_tier=detail.trust_tier,
@@ -169,12 +162,10 @@ def _checksum_response(checksum: SkillChecksum) -> ChecksumResponse:
 def _content_summary_response(
     checksum: SkillChecksum,
     size_bytes: int,
-    rendered_summary: str | None,
 ) -> SkillContentSummaryResponse:
     return SkillContentSummaryResponse(
         checksum=_checksum_response(checksum),
         size_bytes=size_bytes,
-        rendered_summary=rendered_summary,
     )
 
 

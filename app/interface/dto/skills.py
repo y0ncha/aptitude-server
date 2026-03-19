@@ -148,10 +148,6 @@ class SkillVersionContentRequest(BaseModel):
     """Markdown body provided at publish time."""
 
     raw_markdown: str = Field(description="Canonical markdown body for this immutable version.")
-    rendered_summary: str | None = Field(
-        default=None,
-        description="Optional pre-rendered short summary stored alongside the markdown.",
-    )
 
     model_config = ConfigDict(extra="forbid")
 
@@ -287,9 +283,6 @@ class SkillContentSummaryResponse(BaseModel):
 
     checksum: ChecksumResponse
     size_bytes: int = Field(description="UTF-8 byte length of the stored markdown.")
-    rendered_summary: str | None = Field(
-        description="Optional pre-rendered short summary stored with the markdown.",
-    )
 
 
 class SkillMetadataResponse(BaseModel):

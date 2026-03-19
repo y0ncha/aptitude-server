@@ -106,7 +106,6 @@ Sources: [alembic/versions/0004_metadata_search_ranking.py](https://github.com/y
 | Field | Type | Nullable | Default / Constraint | Role |
 | --- | --- | --- | --- | --- |
 | `raw_markdown` | `text` | No | Required | Stores the canonical markdown body in PostgreSQL with normal TOAST behavior. |
-| `rendered_summary` | `text` | Yes | Optional | Keeps a short renderable summary close to the body for exact and list responses. |
 | `storage_size_bytes` | `bigint` | No | Required | Exposes body size for fetch metadata, discovery filters, and deterministic ranking. |
 | `checksum_digest` | `string(64)` | No | Unique | Deduplicates identical markdown bodies across versions and provides exact content cache identity. |
 

@@ -1,76 +1,87 @@
 # Aptitude Server Architecture
 
-```mermaid
-flowchart TB
+This diagram set shows the current `aptitude-server` shape and the planned
+post-launch discovery extension from Plan 15.
 
-    Publisher["Publisher Tooling<br/>- manifest + markdown artifact<br/>- optional provenance"]
-    Resolver["aptitude-resolver / MCP / CLI<br/>- prompt interpretation<br/>- reranking + final selection<br/>- dependency solving<br/>- lock generation"]
+## 1. Server System View
+
+```mermaid
+flowchart LR
+
+    Publisher["Publisher Tooling<br/>manifest + markdown<br/>optional provenance"]
+    Resolver["aptitude-resolver / MCP / CLI<br/>prompt interpretation<br/>reranking + final selection<br/>dependency solving + lock generation"]
 
     subgraph Server["aptitude-server"]
-        Main["app/main.py<br/>FastAPI composition root<br/>- lifespan startup/shutdown<br/>- app.state wiring<br/>- shared exception handlers"]
+        direction TB
 
-        subgraph Interface["Interface Layer: app/interface/api"]
-            Health["health.py<br/>GET /healthz<br/>GET /readyz"]
-            DiscoveryRoute["discovery.py<br/>POST /discovery<br/>ordered slug candidates"]
-            ResolutionRoute["resolution.py<br/>GET /resolution/{slug}/{version}<br/>direct depends_on only"]
-            FetchRoute["fetch.py<br/>GET metadata + content<br/>exact immutable reads"]
-            SkillsRoute["skills.py<br/>POST publish version<br/>PATCH lifecycle status"]
-            ErrorRoute["errors.py<br/>stable public error envelope"]
+        Main["app/main.py<br/>composition root"]
+
+        subgraph Interface["Interface Layer"]
+            direction LR
+            Health["GET /healthz<br/>GET /readyz"]
+            Publish["POST /skills/{slug}/versions<br/>PATCH lifecycle status"]
+            Discovery["POST /discovery<br/>ordered slug candidates"]
+            Resolution["GET /resolution/{slug}/{version}<br/>exact first-degree reads"]
+            Fetch["GET /skills/{slug}/versions/{version}<br/>GET /content"]
         end
 
-        subgraph Core["Core Layer: app/core"]
-            Dependencies["dependencies.py<br/>request -> app.state services"]
-            RegistrySvc["SkillRegistryService<br/>- publish_version()<br/>- lifecycle transitions"]
-            DiscoverySvc["SkillDiscoveryService<br/>candidate retrieval only"]
-            ResolutionSvc["SkillResolutionService<br/>exact relationship reads"]
-            FetchSvc["SkillFetchService<br/>exact metadata + markdown"]
-            Governance["GovernancePolicy<br/>- scopes: read / publish / admin<br/>- trust tiers + lifecycle rules"]
-            AuditEvents["audit_events.py<br/>typed audit payload builders"]
-            Ports["ports.py<br/>repository / audit / readiness contracts"]
+        subgraph Core["Core Layer"]
+            direction LR
+            RegistrySvc["SkillRegistryService"]
+            DiscoverySvc["SkillDiscoveryService"]
+            ResolutionSvc["SkillResolutionService"]
+            FetchSvc["SkillFetchService"]
+            Governance["GovernancePolicy"]
+            AuditEvents["Audit event builders"]
+            Ports["Ports / contracts"]
         end
 
-        subgraph Infra["Infrastructure"]
-            subgraph Persistence["Persistence: app/persistence"]
-                DB["db.py<br/>SQLAlchemy engine + session factory<br/>readiness probe"]
-                Repo["SQLAlchemySkillRegistryRepository<br/>publish / discovery / fetch / resolution"]
+        subgraph Infra["Infrastructure Layer"]
+            direction LR
+
+            subgraph Persistence["Persistence"]
+                direction TB
+                Repo["SQLAlchemySkillRegistryRepository"]
                 Models["ORM models<br/>skill<br/>skill_version<br/>skill_content<br/>skill_metadata<br/>skill_relationship_selector<br/>skill_search_document"]
-                TxAudit["Transactional mutation audit<br/>publish + lifecycle events<br/>same DB commit as authoritative writes"]
             end
 
-            subgraph Audit["Audit Adapter: app/audit"]
-                AuditRecorder["SQLAlchemyAuditRecorder<br/>standalone read + denied-action audits"]
+            subgraph Audit["Audit Adapter"]
+                direction TB
+                AuditRecorder["SQLAlchemyAuditRecorder"]
             end
-        end
 
-        subgraph Data["PostgreSQL"]
-            ArtifactStore[("Immutable content + metadata")]
-            SearchIndex[("Discovery read models + indexes")]
-            AuditTable[("audit_events")]
+            subgraph OptionalWorkers["Optional Post-Launch Workers"]
+                direction TB
+                EmbedIndexer["Embedding indexer<br/>(Plan 15)"]
+                CoUsageRefresh["Co-usage refresh job<br/>(Plan 15)"]
+            end
         end
     end
 
-    Publisher -->|"POST /skills/{slug}/versions"| SkillsRoute
-    Resolver -->|"POST /discovery"| DiscoveryRoute
-    Resolver -->|"GET /resolution/{slug}/{version}"| ResolutionRoute
-    Resolver -->|"GET /skills/{slug}/versions/{version}<br/>GET /content"| FetchRoute
+    subgraph Data["PostgreSQL"]
+        direction TB
+        Canonical[("Canonical registry tables<br/>versions, metadata, content,<br/>selectors, provenance")]
+        Lexical[("Lexical discovery read model<br/>skill_search_documents")]
+        AuditTable[("audit_events")]
+        Semantic[("Semantic discovery read model<br/>skill_search_embeddings<br/>(Plan 15 optional)")]
+        CoUsage[("Co-usage aggregates<br/>skill_co_usage_pairs<br/>(Plan 15 optional)")]
+    end
+
+    Publisher -->|"publish version"| Publish
+    Resolver -->|"candidate retrieval"| Discovery
+    Resolver -->|"exact relationship reads"| Resolution
+    Resolver -->|"exact metadata/content fetch"| Fetch
 
     Main --> Health
-    Main --> DiscoveryRoute
-    Main --> ResolutionRoute
-    Main --> FetchRoute
-    Main --> SkillsRoute
-    Main --> ErrorRoute
+    Main --> Publish
+    Main --> Discovery
+    Main --> Resolution
+    Main --> Fetch
 
-    DiscoveryRoute --> Dependencies
-    ResolutionRoute --> Dependencies
-    FetchRoute --> Dependencies
-    SkillsRoute --> Dependencies
-    Health --> DB
-
-    Dependencies --> RegistrySvc
-    Dependencies --> DiscoverySvc
-    Dependencies --> ResolutionSvc
-    Dependencies --> FetchSvc
+    Publish --> RegistrySvc
+    Discovery --> DiscoverySvc
+    Resolution --> ResolutionSvc
+    Fetch --> FetchSvc
 
     RegistrySvc --> Governance
     DiscoverySvc --> Governance
@@ -89,33 +100,97 @@ flowchart TB
 
     Ports --> Repo
     Ports --> AuditRecorder
-    DB --> Repo
-    Repo --> Models
-    Repo --> TxAudit
-    Repo --> ArtifactStore
-    Repo --> SearchIndex
-    TxAudit --> AuditTable
 
+    Repo --> Models
+    Repo --> Canonical
+    Repo --> Lexical
     AuditRecorder --> AuditTable
 
-    NoteServer["Server owns data-local work<br/>publish, discovery, exact fetch, governance, audit"]
-    NoteResolver["Resolver owns decision-local work<br/>intent understanding, reranking, solving, lock creation"]
+    Publish -. "post-commit indexing" .-> EmbedIndexer
+    EmbedIndexer -.-> Semantic
+    Resolver -. "explicit outcome feed / lock facts" .-> CoUsageRefresh
+    CoUsageRefresh -.-> CoUsage
 
-    Main --- NoteServer
+    NoteServer["Server owns data-local work<br/>publish, discovery, exact fetch,<br/>governance, audit"]
+    NoteResolver["Resolver owns decision-local work<br/>intent understanding, reranking,<br/>selection, solving, execution"]
+
+    Server --- NoteServer
     Resolver --- NoteResolver
 
-    classDef edge fill:#ffffff,stroke:#adb5bd,color:#495057,stroke-dasharray: 4 4;
-    classDef external fill:#f8f9fa,stroke:#868e96,color:#1e1e1e;
-    classDef entry fill:#e7f5ff,stroke:#1971c2,color:#1e1e1e;
-    classDef core fill:#f3f0ff,stroke:#6741d9,color:#1e1e1e;
-    classDef infra fill:#fff4e6,stroke:#e8590c,color:#1e1e1e;
-    classDef data fill:#ebfbee,stroke:#2f9e44,color:#1e1e1e;
+    classDef external fill:#f8f9fa,stroke:#6c757d,color:#1f2328;
+    classDef entry fill:#e7f5ff,stroke:#1c7ed6,color:#1f2328;
+    classDef core fill:#fff0f6,stroke:#c2255c,color:#1f2328;
+    classDef infra fill:#fff4e6,stroke:#e67700,color:#1f2328;
+    classDef data fill:#ebfbee,stroke:#2b8a3e,color:#1f2328;
+    classDef future fill:#f1f3f5,stroke:#868e96,color:#495057,stroke-dasharray: 5 3;
     classDef note fill:#fff9db,stroke:#f08c00,color:#5f3b00;
 
     class Publisher,Resolver external;
-    class Main,Health,DiscoveryRoute,ResolutionRoute,FetchRoute,SkillsRoute,ErrorRoute entry;
-    class Dependencies,RegistrySvc,DiscoverySvc,ResolutionSvc,FetchSvc,Governance,AuditEvents,Ports core;
-    class DB,Repo,Models,TxAudit,AuditRecorder infra;
-    class ArtifactStore,SearchIndex,AuditTable data;
+    class Health,Publish,Discovery,Resolution,Fetch,Main entry;
+    class RegistrySvc,DiscoverySvc,ResolutionSvc,FetchSvc,Governance,AuditEvents,Ports core;
+    class Repo,Models,AuditRecorder infra;
+    class Canonical,Lexical,AuditTable data;
+    class EmbedIndexer,CoUsageRefresh,Semantic,CoUsage future;
     class NoteServer,NoteResolver note;
+```
+
+## 2. Discovery Internals
+
+```mermaid
+flowchart TB
+
+    Request["POST /discovery<br/>name + optional description + tags"]
+    Normalize["Normalize query text + tags"]
+    Governance["Apply lifecycle / trust / filter policy"]
+
+    subgraph Current["Current Baseline"]
+        direction TB
+        LexicalLookup["Lexical retrieval<br/>skill_search_documents<br/>tsvector + exact/substring"]
+        LexicalRank["Deterministic lexical ranking<br/>exact slug/name<br/>ts_rank_cd<br/>tag overlap<br/>usage/freshness"]
+    end
+
+    subgraph Future["Plan 15 Optional Additive Layers"]
+        direction TB
+        QueryEmbed["Query embedding<br/>best effort + timeout"]
+        SemanticLookup["Semantic retrieval<br/>skill_search_embeddings<br/>pgvector ANN"]
+        CoUsageBoost["Bounded co-usage boost<br/>skill_co_usage_pairs<br/>only from explicit outcome signals"]
+    end
+
+    Union["Union eligible candidates"]
+    Fusion["Deterministic fusion<br/>RRF + exact-match precedence"]
+    Collapse["Keep best version per slug"]
+    Response["Ordered slug candidates"]
+
+    Request --> Normalize
+    Normalize --> Governance
+    Governance --> LexicalLookup
+    LexicalLookup --> LexicalRank
+    Governance -.-> QueryEmbed
+    QueryEmbed -.-> SemanticLookup
+    LexicalRank --> Union
+    SemanticLookup -.-> Union
+    Union --> Fusion
+    CoUsageBoost -.-> Fusion
+    Fusion --> Collapse
+    Collapse --> Response
+
+    NoteA["Lexical retrieval is mandatory"]
+    NoteB["Semantic retrieval is best effort"]
+    NoteC["Co-usage is advisory only<br/>not a dependency source"]
+    NoteD["No new public route family"]
+
+    Future --- NoteB
+    Current --- NoteA
+    CoUsageBoost --- NoteC
+    Response --- NoteD
+
+    classDef baseline fill:#e7f5ff,stroke:#1c7ed6,color:#1f2328;
+    classDef future fill:#f1f3f5,stroke:#868e96,color:#495057,stroke-dasharray: 5 3;
+    classDef neutral fill:#f8f9fa,stroke:#6c757d,color:#1f2328;
+    classDef note fill:#fff9db,stroke:#f08c00,color:#5f3b00;
+
+    class Request,Normalize,Governance,Union,Fusion,Collapse,Response neutral;
+    class LexicalLookup,LexicalRank baseline;
+    class QueryEmbed,SemanticLookup,CoUsageBoost future;
+    class NoteA,NoteB,NoteC,NoteD note;
 ```

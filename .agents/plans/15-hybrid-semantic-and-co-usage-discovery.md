@@ -13,6 +13,8 @@ read-contract reset, contract freeze, release hardening, or auth-boundary work.
 This plan extracts a concrete implementation path from the broader optional
 discovery bucket: semantic retrieval and co-usage ranking signals should be
 implemented here rather than folded loosely into generic evaluation work.
+It assumes the summary unification cleanup is already complete, with
+`metadata.description` as the only canonical short-text field.
 
 ## Relationship to Earlier Plans
 
@@ -79,7 +81,6 @@ implemented here rather than folded loosely into generic evaluation work.
   - `name`
   - `description`
   - `tags`
-  - `rendered_summary`
 - Keep `raw_markdown` out of the first semantic-search version.
 - Add a new derived read model, recommended as `skill_search_embeddings`, with:
   - `skill_version_fk`

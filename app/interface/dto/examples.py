@@ -7,7 +7,6 @@ PUBLISH_REQUEST_EXAMPLE = {
     "version": "1.2.3",
     "content": {
         "raw_markdown": "# Python Lint\n\nLint Python files consistently.\n",
-        "rendered_summary": "Lint Python files consistently.",
     },
     "metadata": {
         "name": "Python Lint",
@@ -56,7 +55,6 @@ SKILL_VERSION_METADATA_RESPONSE_EXAMPLE = {
     "content": {
         "checksum": CHECKSUM_EXAMPLE,
         "size_bytes": 123,
-        "rendered_summary": "Lint Python files consistently.",
     },
     "metadata": {
         "name": "Python Lint",

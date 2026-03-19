@@ -37,3 +37,5 @@ that infrastructure layers implement.
 - Logging configuration is defined once in core and reused by runtime entrypoints.
 - Dependency providers in `dependencies.py` assume startup has initialized
   the process-scoped services stored under `app.state`.
+- Core treats `metadata.description` as the only canonical short summary field;
+  content models expose checksum and size metadata only.

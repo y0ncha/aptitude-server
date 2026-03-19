@@ -27,8 +27,7 @@ body:
       "intent": "create_skill",
       "version": "{{sanity_version_1}}",
       "content": {
-        "raw_markdown": "# Postman Dependency Skill\n\nRun `{{runId}}` dependency version 1.\n",
-        "rendered_summary": "Postman dependency skill."
+        "raw_markdown": "# Postman Dependency Skill\n\nRun `{{runId}}` dependency version 1.\n"
       },
       "metadata": {
         "name": "Postman Dependency Skill",
