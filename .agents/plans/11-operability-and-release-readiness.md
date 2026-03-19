@@ -51,3 +51,13 @@ Harden `aptitude-server` for repeatable deployment and reliable operation after 
 - Audit/log correlation test for a complete registry request path.
 - Performance/load validation for discovery, resolution, and exact fetch on the finalized route set.
 - Alerting and metrics sanity test for publish failures, exact-read failures, resolution failures, and discovery latency regression.
+
+## Plan 15 Follow-On Note (2026-03-19)
+- Release-readiness acceptance in this milestone is still based on the lexical
+  PostgreSQL discovery baseline finalized in Plans 08-10.
+- Hybrid semantic retrieval, embedding-index lag monitoring, query-embedding
+  latency budgets, and co-usage aggregate health are post-launch extensions
+  owned by Plan 15 rather than additional release gates for this milestone.
+- If Plan 15 is implemented later, its metrics, alerts, dashboards, and runbook
+  additions should extend this observability foundation without changing the
+  frozen public route set or reopening lexical-baseline release criteria.

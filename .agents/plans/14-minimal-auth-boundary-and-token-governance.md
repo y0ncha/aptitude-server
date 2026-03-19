@@ -76,3 +76,14 @@ After `dev`, `test`, and `prod` are standardized in Plan 13, introduce a minimal
 - This milestone intentionally follows environment-profile separation so auth rules can depend on explicit runtime profiles.
 - `test` should remain close to `prod` for auth behavior unless a test explicitly opts into a development-only bypass.
 - The service continues to use one FastAPI app and one settings model.
+
+## Plan 15 Follow-On Note (2026-03-19)
+- Plan 15 does not widen the auth model introduced here. Semantic retrieval and
+  co-usage ranking remain governed by the same route-level `read` access model
+  and existing discovery-policy enforcement.
+- Discovery enhancements must not become identity-personalized search behavior
+  inside the server. Caller identity may still gate access, but final selection
+  and user-specific ranking remain resolver-owned.
+- Any credentials needed for embedding generation or aggregate refresh jobs are
+  infrastructure/runtime concerns, not new public auth mechanisms or endpoint
+  families.

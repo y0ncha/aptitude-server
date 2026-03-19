@@ -20,7 +20,7 @@ Deliver a production-ready, PyPI-like immutable registry service (`aptitude-serv
 - Server remains execution-agnostic and exposes governed APIs for publish, discovery, resolution, exact fetch, lifecycle, and provenance.
 - Server contracts are slug candidates, authored direct dependency declarations, immutable metadata/content envelopes, and governance results; the server does not return canonical solved bundles.
 - Discovery remains candidate generation only; resolution remains exact first-degree dependency retrieval only; resolver choice and lock output remain authoritative.
-- Plans 09-14 keep the public route families fixed: publish, discovery, resolution, exact metadata fetch, exact content fetch, and lifecycle/governance operations.
+- Plans 09-15 keep the public route families fixed: publish, discovery, resolution, exact metadata fetch, exact content fetch, and lifecycle/governance operations.
 - Later milestones extend behavior inside that route set instead of adding new public read route families, compatibility aliases, or batch-fetch detours.
 
 ## Milestones
@@ -38,6 +38,7 @@ Deliver a production-ready, PyPI-like immutable registry service (`aptitude-serv
 12. `12-optional-evaluation-signals-and-snapshotting.md`
 13. `13-environment-profiles-and-runtime-separation.md`
 14. `14-minimal-auth-boundary-and-token-governance.md`
+15. `15-hybrid-semantic-and-co-usage-discovery.md`
 
 ## PRD Phase Mapping
 - `MVP` (prd): milestones 01-04.
@@ -48,6 +49,7 @@ Deliver a production-ready, PyPI-like immutable registry service (`aptitude-serv
 - `Post-launch optional discovery enhancements`: milestone 12.
 - `Environment profile separation`: milestone 13.
 - `Security boundary hardening`: milestone 14.
+- `Post-launch hybrid semantic and co-usage discovery`: milestone 15.
 - Resolver-specific initiatives (prompt interpretation, deterministic solving, reranking, plugin chains, and lock replay) are tracked in resolver planning and are out of scope for this roadmap.
 
 ## Roadmap Rules

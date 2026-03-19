@@ -32,9 +32,7 @@ def build_publish_audit_event(
     """Return a publish audit event with redacted actor context."""
     return AuditEventRecord(
         event_type=(
-            "skill.version_published"
-            if outcome == "allowed"
-            else "skill.version_publish_denied"
+            "skill.version_published" if outcome == "allowed" else "skill.version_publish_denied"
         ),
         payload=_base_payload(
             caller=caller,

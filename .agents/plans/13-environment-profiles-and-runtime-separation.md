@@ -59,3 +59,12 @@ Standardize `dev`, `test`, and `prod` as explicit runtime profiles before any au
 - This milestone is intentionally placed before auth hardening so environment boundaries are explicit first.
 - There is no separate `staging` profile in this milestone; staging should use `prod` semantics unless a later plan introduces a fourth profile.
 - The repo keeps one FastAPI app and one settings model; environment behavior is controlled by validated settings and runner commands, not separate codebases.
+
+## Plan 15 Follow-On Note (2026-03-19)
+- Plan 15 inherits the same `dev`, `test`, and `prod` profile model; semantic
+  indexing, embedding-provider configuration, co-usage aggregation jobs, and
+  feature flags must fit inside these existing runtime profiles rather than
+  introducing search-specific environments.
+- Any future semantic-search configuration should remain environment-scoped
+  settings only. It must not create route variants, separate apps, or
+  profile-specific discovery contracts.
