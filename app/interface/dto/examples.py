@@ -7,7 +7,6 @@ PUBLISH_REQUEST_EXAMPLE = {
     "version": "1.2.3",
     "content": {
         "raw_markdown": "# Python Lint\n\nLint Python files consistently.\n",
-        "rendered_summary": "Lint Python files consistently.",
     },
     "metadata": {
         "name": "Python Lint",
@@ -26,6 +25,7 @@ PUBLISH_REQUEST_EXAMPLE = {
             "repo_url": "https://github.com/example/skills",
             "commit_sha": "aabbccddeeff00112233445566778899aabbccdd",
             "tree_path": "skills/python.lint",
+            "publisher_identity": "ci/acme-release",
         },
     },
     "relationships": {
@@ -55,7 +55,6 @@ SKILL_VERSION_METADATA_RESPONSE_EXAMPLE = {
     "content": {
         "checksum": CHECKSUM_EXAMPLE,
         "size_bytes": 123,
-        "rendered_summary": "Lint Python files consistently.",
     },
     "metadata": {
         "name": "Python Lint",
@@ -74,6 +73,11 @@ SKILL_VERSION_METADATA_RESPONSE_EXAMPLE = {
         "repo_url": "https://github.com/example/skills",
         "commit_sha": "aabbccddeeff00112233445566778899aabbccdd",
         "tree_path": "skills/python.lint",
+        "publisher_identity": "ci/acme-release",
+        "trust_context": {
+            "trust_tier": "internal",
+            "policy_profile": "default",
+        },
     },
     "published_at": "2026-03-10T08:30:00Z",
 }

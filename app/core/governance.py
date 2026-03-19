@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Literal
 
@@ -33,6 +34,8 @@ class ProvenanceMetadata:
     repo_url: str
     commit_sha: str
     tree_path: str | None = None
+    publisher_identity: str | None = None
+    policy_profile: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -129,6 +132,20 @@ class GovernancePolicy:
                 details={"trust_tier": governance.trust_tier},
             )
 
+    def prepare_publish_governance(
+        self,
+        *,
+        caller: CallerIdentity,
+        governance: SkillGovernanceInput,
+    ) -> SkillGovernanceInput:
+        """Normalize publish-time governance input and validate policy requirements."""
+        normalized = SkillGovernanceInput(
+            trust_tier=governance.trust_tier,
+            provenance=self._normalize_provenance(governance.provenance),
+        )
+        self.evaluate_publish(caller=caller, governance=normalized)
+        return normalized
+
     def evaluate_transition(
         self,
         *,
@@ -218,6 +235,29 @@ class GovernancePolicy:
         """Return effective trust-tier filters for discovery."""
         return requested_trust_tiers or ALL_TRUST_TIERS
 
+    def _normalize_provenance(
+        self,
+        provenance: ProvenanceMetadata | None,
+    ) -> ProvenanceMetadata | None:
+        if provenance is None:
+            return None
+
+        repo_url = _normalize_required_text(provenance.repo_url, field_name="repo_url")
+        commit_sha = _normalize_commit_sha(provenance.commit_sha)
+        tree_path = _normalize_optional_text(provenance.tree_path, field_name="tree_path")
+        publisher_identity = _normalize_optional_text(
+            provenance.publisher_identity,
+            field_name="publisher_identity",
+        )
+
+        return ProvenanceMetadata(
+            repo_url=repo_url,
+            commit_sha=commit_sha,
+            tree_path=tree_path,
+            publisher_identity=publisher_identity,
+            policy_profile=self.profile_name,
+        )
+
 
 def build_default_policy_profile() -> PolicyProfile:
     """Return the built-in default policy profile."""
@@ -238,3 +278,42 @@ def build_default_policy_profile() -> PolicyProfile:
         discovery_admin_statuses=("published", "deprecated", "archived"),
         exact_read_statuses=("published", "deprecated"),
     )
+
+
+def _normalize_required_text(value: str, *, field_name: str) -> str:
+    normalized = value.strip()
+    if not normalized:
+        raise PolicyViolation(
+            code="POLICY_PROVENANCE_INVALID",
+            message="Provenance metadata contains invalid values.",
+            details={"field": field_name},
+        )
+    return normalized
+
+
+def _normalize_optional_text(value: str | None, *, field_name: str) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    if not normalized:
+        raise PolicyViolation(
+            code="POLICY_PROVENANCE_INVALID",
+            message="Provenance metadata contains invalid values.",
+            details={"field": field_name},
+        )
+    return normalized
+
+
+def _normalize_commit_sha(value: str) -> str:
+    normalized = _normalize_required_text(value, field_name="commit_sha").lower()
+    if (
+        len(normalized) < 7
+        or len(normalized) > 64
+        or re.fullmatch(r"[0-9a-f]+", normalized) is None
+    ):
+        raise PolicyViolation(
+            code="POLICY_PROVENANCE_INVALID",
+            message="Provenance metadata contains invalid values.",
+            details={"field": "commit_sha"},
+        )
+    return normalized

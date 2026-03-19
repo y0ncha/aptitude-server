@@ -22,8 +22,7 @@ body:
       "intent": "publish_version",
       "version": "1.0.0",
       "content": {
-        "raw_markdown": "# Duplicate Seed Skill\n\nInitial version used to provoke a duplicate publish.\n",
-        "rendered_summary": "Duplicate seed skill."
+        "raw_markdown": "# Duplicate Seed Skill\n\nInitial version used to provoke a duplicate publish.\n"
       },
       "metadata": {
         "name": "Duplicate Seed Skill",

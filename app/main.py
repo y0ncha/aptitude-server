@@ -96,10 +96,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     app.state.skill_fetch_service = SkillFetchService(
         version_reader=registry_repository,
+        audit_recorder=audit_recorder,
         governance_policy=governance_policy,
     )
     app.state.skill_resolution_service = SkillResolutionService(
         relationship_reader=registry_repository,
+        audit_recorder=audit_recorder,
         governance_policy=governance_policy,
     )
     logger.info("service startup complete")

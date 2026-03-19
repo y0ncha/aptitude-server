@@ -14,6 +14,7 @@ that infrastructure layers implement.
 - `skill_resolution.py`: exact direct dependency read service for authored `depends_on` selectors.
 - `skill_fetch.py`: exact immutable metadata and markdown fetch service.
 - `skill_search.py`: advisory search query/result models and implementation reused by discovery.
+- `audit_events.py`: typed audit-event builders shared by publish, discovery, fetch, resolution, and lifecycle flows.
 - `ports.py`: protocol contracts for publish, exact version reads, relationship reads, discovery, artifacts, audit, and readiness.
 - `dependencies.py`: FastAPI dependency providers and typed aliases
   (`SettingsDep`, `ReadinessServiceDep`, `SkillRegistryServiceDep`, `SkillDiscoveryServiceDep`, `SkillResolutionServiceDep`, `SkillFetchServiceDep`) that read process-scoped services from `request.app.state`.
@@ -30,7 +31,11 @@ that infrastructure layers implement.
 - Core discovery remains candidate retrieval only; ranking is advisory and not authoritative for resolver choice.
 - Core resolution returns only direct authored dependency selectors; no transitive traversal or solving belongs here.
 - Core fetch composes PostgreSQL-backed metadata and markdown reads for single exact immutable coordinates.
+- Core publish normalizes publisher-supplied advisory provenance, derives server-owned trust context, and leaves resolver concerns out of the write path.
 - Core registry status updates derive `is_current_default` from canonical version ordering instead of a stored pointer on `skills`.
+- Successful publish and lifecycle mutation audits are committed transactionally with the authoritative version write, while read and denied-action audits use the standalone audit adapter.
 - Logging configuration is defined once in core and reused by runtime entrypoints.
 - Dependency providers in `dependencies.py` assume startup has initialized
   the process-scoped services stored under `app.state`.
+- Core treats `metadata.description` as the only canonical short summary field;
+  content models expose checksum and size metadata only.

@@ -11,7 +11,7 @@ migrations.
 
 - `base.py`: declarative base class.
 - `skill.py`: logical skill root table (`skills`).
-- `skill_version.py`: immutable version metadata (`skill_versions`).
+- `skill_version.py`: immutable version metadata plus advisory provenance snapshot (`skill_versions`).
 - `skill_content.py`: canonical markdown storage (`skill_contents`).
 - `skill_metadata.py`: normalized metadata storage (`skill_metadata`).
 - `skill_relationship_selector.py`: authored relationship selectors

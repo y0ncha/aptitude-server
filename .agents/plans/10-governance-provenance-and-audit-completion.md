@@ -51,3 +51,10 @@ Complete the governance model over the finalized PostgreSQL-backed registry whil
 - Integration test verifying provenance metadata is returned when present and ignored cleanly when absent.
 - Audit completeness test against the governance event matrix.
 - Cleanup regression test confirming removed-route artifacts do not survive into the final governed contract.
+
+## Implementation Notes - 2026-03-15
+- Publisher-collected advisory provenance now supports optional `publisher_identity`; the server normalizes and validates provenance, persists it immutably on `skill_versions`, and derives `trust_context` from stored trust tier plus the active policy profile.
+- Exact metadata fetch returns enriched advisory provenance when present, while discovery, resolution, and raw content fetch remain provenance-independent and continue to avoid Git/filesystem/object-storage dependencies.
+- Successful publish and lifecycle audits now commit transactionally with the authoritative mutation, while discovery, exact reads, and denied governance actions use the standalone audit recorder.
+- The audit matrix now covers successful and denied publish, successful and denied lifecycle updates, discovery, exact resolution/metadata/content reads, and denied exact reads for hidden lifecycle states.
+- Contract docs, DTO examples, module READMEs, and stale unit tests were updated to match the publisher/server/resolver split and the frozen public route families.

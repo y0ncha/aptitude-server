@@ -13,7 +13,7 @@
   - Immutable read APIs return stable `ETag` headers, and target conditional reads support `If-None-Match` with `304 Not Modified`.
   - Exact fetches do not require access to a Git repository or working tree.
   - 100% of publish, deprecate, archive, and admin-policy actions emit auditable events.
-- **In Scope**: Publish, discovery, public resolution, exact metadata/content fetch APIs, immutable versioning, metadata and discovery indexes, content-addressed artifact references, provenance and integrity controls, lifecycle governance, audit logging, and authorization on registry operations.
+- **In Scope**: Publish, discovery, public resolution, exact metadata/content fetch APIs, immutable versioning, metadata and discovery indexes, content-addressed artifact references, advisory provenance and integrity controls, lifecycle governance, audit logging, and authorization on registry operations.
 - **Out of Scope**: Prompt interpretation, personalized reranking, final candidate selection, dependency solving, lock generation, runtime execution planning, and direct database access by consumers.
 
 ### Current Status vs Planned State (March 15, 2026)
@@ -48,7 +48,7 @@
   - Published versions persist direct dependency declarations exactly as authored; the server does not compute resolved dependency closures.
   - The discovery capability accepts `name`, optional `description`, and optional `tags`, and returns ordered candidate slugs only.
   - Discovery ordering remains deterministic, but explanation fields and final candidate choice stay outside the public server contract.
-  - The exact fetch capability returns immutable metadata or immutable raw markdown plus optional provenance metadata for the requested published version.
+  - The exact fetch capability returns immutable metadata or immutable raw markdown plus optional advisory provenance metadata for the requested published version.
   - Published versions map immutably to a single `sha256` digest, and identical payloads reuse existing digest-backed PostgreSQL artifact rows.
   - Exact fetch and search behavior do not depend on a live Git checkout.
   - Deprecation and archive state are enforced consistently in discovery visibility and exact-read policy.
@@ -147,7 +147,7 @@ flowchart LR
 
 - **Security & Privacy**:
   - Immutable `sha256` checksum per stored artifact and per published version binding.
-  - Provenance metadata may be captured on publish, including source repository, commit identity, publisher identity, and trust tier.
+  - Provenance metadata may be captured on publish, including source repository, commit identity, and publisher-supplied publisher identity, while trust context remains server-derived.
   - Authorization and lifecycle policy gates on publication and privileged admin operations.
   - Audit retention for compliance, incident response, and forensic traceability.
   - Git metadata is stored as normalized provenance fields only; read paths do not require repository access.

@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload, sessionmaker
 
 from app.core.governance import LifecycleStatus, TrustTier
 from app.core.ports import (
+    AuditEventRecord,
     CreateSkillVersionRecord,
     ExactSkillCoordinate,
     SearchCandidatesRequest,
@@ -26,6 +27,7 @@ from app.core.ports import (
     StoredSkillVersionStatus,
 )
 from app.core.skill_registry import DuplicateSkillVersionError
+from app.persistence.models.audit_event import AuditEvent
 from app.persistence.models.skill import Skill
 from app.persistence.models.skill_content import SkillContent
 from app.persistence.models.skill_metadata import SkillMetadata
@@ -71,7 +73,12 @@ class SQLAlchemySkillRegistryRepository(
             )
             return session.execute(statement).scalar_one_or_none() is not None
 
-    def create_version(self, *, record: CreateSkillVersionRecord) -> StoredSkillVersion:
+    def create_version(
+        self,
+        *,
+        record: CreateSkillVersionRecord,
+        audit_events: tuple[AuditEventRecord, ...] = (),
+    ) -> StoredSkillVersion:
         with self._session_factory() as session:
             try:
                 skill = self._get_or_create_skill(session=session, slug=record.slug)
@@ -114,6 +121,16 @@ class SQLAlchemySkillRegistryRepository(
                         if record.governance.provenance is None
                         else record.governance.provenance.tree_path
                     ),
+                    provenance_publisher_identity=(
+                        None
+                        if record.governance.provenance is None
+                        else record.governance.provenance.publisher_identity
+                    ),
+                    policy_profile_at_publish=(
+                        None
+                        if record.governance.provenance is None
+                        else record.governance.provenance.policy_profile
+                    ),
                 )
                 session.add(skill_version)
                 session.flush()
@@ -148,6 +165,7 @@ class SQLAlchemySkillRegistryRepository(
                         content_size_bytes=record.content.size_bytes,
                     )
                 )
+                self._add_audit_events(session=session, audit_events=audit_events)
                 session.commit()
 
                 reloaded = self._get_version_entity(
@@ -294,6 +312,7 @@ class SQLAlchemySkillRegistryRepository(
         slug: str,
         version: str,
         lifecycle_status: LifecycleStatus,
+        audit_events: tuple[AuditEventRecord, ...] = (),
     ) -> StoredSkillVersionStatus | None:
         with self._session_factory() as session:
             try:
@@ -314,6 +333,7 @@ class SQLAlchemySkillRegistryRepository(
                     session=session,
                     skill_id=entity.skill_fk,
                 )
+                self._add_audit_events(session=session, audit_events=audit_events)
                 session.flush()
                 session.commit()
 
@@ -330,6 +350,18 @@ class SQLAlchemySkillRegistryRepository(
                 raise SkillRegistryPersistenceError(
                     "Failed to update immutable skill version status."
                 ) from exc
+
+    @staticmethod
+    def _add_audit_events(
+        *,
+        session: Session,
+        audit_events: tuple[AuditEventRecord, ...],
+    ) -> None:
+        if not audit_events:
+            return
+        session.add_all(
+            AuditEvent(event_type=event.event_type, payload=event.payload) for event in audit_events
+        )
 
     @staticmethod
     def _get_or_create_skill(*, session: Session, slug: str) -> Skill:
@@ -358,7 +390,6 @@ class SQLAlchemySkillRegistryRepository(
 
         created = SkillContent(
             raw_markdown=record.content.raw_markdown,
-            rendered_summary=record.content.rendered_summary,
             storage_size_bytes=record.content.size_bytes,
             checksum_digest=record.content.checksum_digest,
         )

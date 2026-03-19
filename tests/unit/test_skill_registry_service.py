@@ -6,8 +6,16 @@ from datetime import UTC, datetime
 
 import pytest
 
-from app.core.governance import CallerIdentity, GovernancePolicy, build_default_policy_profile
+from app.core.governance import (
+    CallerIdentity,
+    GovernancePolicy,
+    PolicyViolation,
+    ProvenanceMetadata,
+    SkillGovernanceInput,
+    build_default_policy_profile,
+)
 from app.core.ports import (
+    AuditEventRecord,
     CreateSkillVersionRecord,
     StoredSkillVersion,
     StoredSkillVersionStatus,
@@ -29,6 +37,7 @@ class FakeRegistry:
 
     def __init__(self) -> None:
         self._records: dict[tuple[str, str], StoredSkillVersion] = {}
+        self.audit_events: list[AuditEventRecord] = []
 
     def skill_exists(self, *, slug: str) -> bool:
         return any(record_slug == slug for record_slug, _ in self._records)
@@ -36,7 +45,12 @@ class FakeRegistry:
     def version_exists(self, *, slug: str, version: str) -> bool:
         return (slug, version) in self._records
 
-    def create_version(self, *, record: CreateSkillVersionRecord) -> StoredSkillVersion:
+    def create_version(
+        self,
+        *,
+        record: CreateSkillVersionRecord,
+        audit_events: tuple[AuditEventRecord, ...] = (),
+    ) -> StoredSkillVersion:
         key = (record.slug, record.version)
         if key in self._records:
             raise DuplicateSkillVersionError(slug=record.slug, version=record.version)
@@ -47,7 +61,6 @@ class FakeRegistry:
             version_checksum_digest=record.version_checksum_digest,
             content_checksum_digest=record.content.checksum_digest,
             content_size_bytes=record.content.size_bytes,
-            rendered_summary=record.content.rendered_summary,
             name=record.metadata.name,
             description=record.metadata.description,
             tags=record.metadata.tags,
@@ -65,6 +78,7 @@ class FakeRegistry:
             relationships=(),
         )
         self._records[key] = stored
+        self.audit_events.extend(audit_events)
         return stored
 
     def get_version(self, *, slug: str, version: str) -> StoredSkillVersion | None:
@@ -76,6 +90,7 @@ class FakeRegistry:
         slug: str,
         version: str,
         lifecycle_status: str,
+        audit_events: tuple[AuditEventRecord, ...] = (),
     ) -> StoredSkillVersionStatus | None:
         record = self._records.get((slug, version))
         if record is None:
@@ -86,7 +101,6 @@ class FakeRegistry:
             version_checksum_digest=record.version_checksum_digest,
             content_checksum_digest=record.content_checksum_digest,
             content_size_bytes=record.content_size_bytes,
-            rendered_summary=record.rendered_summary,
             name=record.name,
             description=record.description,
             tags=record.tags,
@@ -104,6 +118,7 @@ class FakeRegistry:
             relationships=record.relationships,
         )
         self._records[(slug, version)] = updated
+        self.audit_events.extend(audit_events)
         return StoredSkillVersionStatus(
             slug=slug,
             version=version,
@@ -171,7 +186,7 @@ def test_publish_version_returns_checksum_and_records_audit() -> None:
     assert response.version == "1.0.0"
     assert response.version_checksum.algorithm == "sha256"
     assert response.content.size_bytes == len(b"# Python Lint\n")
-    assert "skill.version_published" in audit_recorder.events
+    assert "skill.version_published" in [event.event_type for event in registry.audit_events]
 
 
 @pytest.mark.unit
@@ -182,11 +197,16 @@ def test_publish_version_rejects_duplicates() -> None:
         audit_recorder=FakeAuditRecorder(),
         governance_policy=_governance_policy(),
     )
-    command = _command(slug="python.lint", version="1.0.0")
-    service.publish_version(caller=_publish_caller(), command=command)
+    service.publish_version(
+        caller=_publish_caller(),
+        command=_command(slug="python.lint", version="1.0.0"),
+    )
 
     with pytest.raises(DuplicateSkillVersionError):
-        service.publish_version(caller=_publish_caller(), command=command)
+        service.publish_version(
+            caller=_publish_caller(),
+            command=_command(slug="python.lint", version="1.0.0", intent="publish_version"),
+        )
 
 
 @pytest.mark.unit
@@ -223,3 +243,41 @@ def test_publish_version_intent_rejects_missing_slug() -> None:
             caller=_publish_caller(),
             command=_command(slug="python.lint", version="1.0.0", intent="publish_version"),
         )
+
+
+@pytest.mark.unit
+def test_publish_version_denied_by_policy_records_audit_event() -> None:
+    registry = FakeRegistry()
+    audit_recorder = FakeAuditRecorder()
+    service = SkillRegistryService(
+        registry=registry,
+        audit_recorder=audit_recorder,
+        governance_policy=_governance_policy(),
+    )
+
+    with pytest.raises(PolicyViolation) as exc_info:
+        service.publish_version(
+            caller=_publish_caller(),
+            command=CreateSkillVersionCommand(
+                slug="python.lint",
+                intent="create_skill",
+                version="1.0.0",
+                content=SkillContentInput(raw_markdown="# Python Lint\n"),
+                metadata=SkillMetadataInput(
+                    name="Python Lint",
+                    description="Linting skill",
+                    tags=("python", "lint"),
+                ),
+                relationships=SkillRelationshipsInput(),
+                governance=SkillGovernanceInput(
+                    trust_tier="internal",
+                    provenance=ProvenanceMetadata(
+                        repo_url="  https://github.com/acme/python-lint  ",
+                        commit_sha="  ",
+                    ),
+                ),
+            ),
+        )
+
+    assert exc_info.value.code == "POLICY_PROVENANCE_INVALID"
+    assert "skill.version_publish_denied" in audit_recorder.events

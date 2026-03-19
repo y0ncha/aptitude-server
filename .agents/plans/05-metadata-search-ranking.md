@@ -88,7 +88,6 @@ Base schema direction for this milestone:
 - `skill_contents`
   - `id`
   - `raw_markdown`
-  - `rendered_summary`
   - `storage_size_bytes`
   - `checksum`
 - `skill_metadata`

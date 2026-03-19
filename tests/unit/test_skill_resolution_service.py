@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import pytest
 
-from app.core.governance import CallerIdentity, GovernancePolicy, build_default_policy_profile
+from app.core.governance import (
+    CallerIdentity,
+    GovernancePolicy,
+    PolicyViolation,
+    build_default_policy_profile,
+)
 from app.core.ports import (
     ExactSkillCoordinate,
     StoredRelationshipSelector,
@@ -12,6 +17,17 @@ from app.core.ports import (
 )
 from app.core.skill_models import SkillVersionNotFoundError
 from app.core.skill_resolution import SkillResolutionService
+
+
+class FakeAuditRecorder:
+    """Collect audit events emitted by the resolution service."""
+
+    def __init__(self) -> None:
+        self.events: list[str] = []
+
+    def record_event(self, *, event_type: str, payload: dict[str, object] | None = None) -> None:
+        del payload
+        self.events.append(event_type)
 
 
 class FakeRelationshipReader:
@@ -34,6 +50,7 @@ class FakeRelationshipReader:
 
 @pytest.mark.unit
 def test_get_direct_dependencies_returns_only_depends_on_selectors() -> None:
+    audit_recorder = FakeAuditRecorder()
     source = StoredSkillRelationshipSource(
         slug="python.source",
         version="1.0.0",
@@ -62,6 +79,7 @@ def test_get_direct_dependencies_returns_only_depends_on_selectors() -> None:
     )
     service = SkillResolutionService(
         relationship_reader=FakeRelationshipReader(source),
+        audit_recorder=audit_recorder,
         governance_policy=GovernancePolicy(profile=build_default_policy_profile()),
     )
 
@@ -78,12 +96,14 @@ def test_get_direct_dependencies_returns_only_depends_on_selectors() -> None:
     assert result.depends_on[0].version == "2.0.0"
     assert result.depends_on[0].optional is True
     assert result.depends_on[0].markers == ("linux",)
+    assert audit_recorder.events == ["skill.version_resolution_read"]
 
 
 @pytest.mark.unit
 def test_get_direct_dependencies_raises_not_found_for_unknown_coordinate() -> None:
     service = SkillResolutionService(
         relationship_reader=FakeRelationshipReader(),
+        audit_recorder=FakeAuditRecorder(),
         governance_policy=GovernancePolicy(profile=build_default_policy_profile()),
     )
 
@@ -93,3 +113,30 @@ def test_get_direct_dependencies_raises_not_found_for_unknown_coordinate() -> No
             slug="python.missing",
             version="9.9.9",
         )
+
+
+@pytest.mark.unit
+def test_get_direct_dependencies_audits_denied_exact_reads() -> None:
+    audit_recorder = FakeAuditRecorder()
+    service = SkillResolutionService(
+        relationship_reader=FakeRelationshipReader(
+            StoredSkillRelationshipSource(
+                slug="python.source",
+                version="1.0.0",
+                lifecycle_status="archived",
+                trust_tier="internal",
+                relationships=(),
+            )
+        ),
+        audit_recorder=audit_recorder,
+        governance_policy=GovernancePolicy(profile=build_default_policy_profile()),
+    )
+
+    with pytest.raises(PolicyViolation):
+        service.get_direct_dependencies(
+            caller=CallerIdentity(token="reader", scopes=frozenset({"read"})),
+            slug="python.source",
+            version="1.0.0",
+        )
+
+    assert audit_recorder.events == ["skill.version_exact_read_denied"]

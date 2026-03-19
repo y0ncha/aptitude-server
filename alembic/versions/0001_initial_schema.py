@@ -56,7 +56,6 @@ def upgrade() -> None:
         "skill_contents",
         sa.Column("id", sa.BigInteger(), primary_key=True, autoincrement=True),
         sa.Column("raw_markdown", sa.Text(), nullable=False),
-        sa.Column("rendered_summary", sa.Text(), nullable=True),
         sa.Column("storage_size_bytes", sa.BigInteger(), nullable=False),
         sa.Column("checksum_digest", sa.String(length=64), nullable=False, unique=True),
     )
@@ -109,6 +108,8 @@ def upgrade() -> None:
         sa.Column("provenance_repo_url", sa.Text(), nullable=True),
         sa.Column("provenance_commit_sha", sa.Text(), nullable=True),
         sa.Column("provenance_tree_path", sa.Text(), nullable=True),
+        sa.Column("provenance_publisher_identity", sa.Text(), nullable=True),
+        sa.Column("policy_profile_at_publish", sa.Text(), nullable=True),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),

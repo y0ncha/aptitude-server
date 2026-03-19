@@ -48,7 +48,6 @@ def _request(
         "version": version,
         "content": {
             "raw_markdown": raw_markdown,
-            "rendered_summary": "Lint Python files.",
         },
         "metadata": {
             "name": name,
@@ -137,6 +136,20 @@ def _query_storage_counts(database_url: str, *, slug: str) -> dict[str, int]:
         engine.dispose()
 
 
+def _query_audit_events(database_url: str) -> list[dict[str, Any]]:
+    engine = create_engine(database_url)
+    try:
+        with engine.connect() as connection:
+            return [
+                {"event_type": str(row["event_type"]), "payload": row["payload"]}
+                for row in connection.execute(
+                    text("SELECT event_type, payload FROM audit_events ORDER BY id")
+                ).mappings()
+            ]
+    finally:
+        engine.dispose()
+
+
 @pytest.mark.integration
 def test_publish_discovery_resolution_and_exact_fetch(
     monkeypatch: pytest.MonkeyPatch,
@@ -173,6 +186,7 @@ def test_publish_discovery_resolution_and_exact_fetch(
                     "repo_url": "https://github.com/example/skills",
                     "commit_sha": "aabbccddeeff00112233445566778899aabbccdd",
                     "tree_path": f"skills/{source_slug}",
+                    "publisher_identity": "ci/example-release",
                 },
                 depends_on=[{"slug": dependency_slug, "version": "1.0.0"}],
                 extends=[{"slug": "python.base", "version": "1.0.0"}],
@@ -203,6 +217,7 @@ def test_publish_discovery_resolution_and_exact_fetch(
 
     assert "relationships" not in published
     assert "content_download_path" not in published
+    assert "rendered_summary" not in published["content"]
 
     assert discovery.status_code == 200
     assert discovery.json()["candidates"] == [source_slug]
@@ -229,6 +244,18 @@ def test_publish_discovery_resolution_and_exact_fetch(
     assert metadata_body["version"] == "2.0.0"
     assert "relationships" not in metadata_body
     assert "content_download_path" not in metadata_body
+    assert "rendered_summary" not in metadata_body["content"]
+    assert metadata_body["provenance"] == {
+        "repo_url": "https://github.com/example/skills",
+        "commit_sha": "aabbccddeeff00112233445566778899aabbccdd",
+        "tree_path": f"skills/{source_slug}",
+        "publisher_identity": "ci/example-release",
+        "trust_context": {
+            "trust_tier": "internal",
+            "policy_profile": "default",
+        },
+    }
+    assert published["provenance"] == metadata_body["provenance"]
 
     assert content.status_code == 200
     assert content.headers["content-type"].startswith("text/markdown; charset=utf-8")
@@ -236,6 +263,26 @@ def test_publish_discovery_resolution_and_exact_fetch(
     assert content.headers["Cache-Control"] == "public, immutable"
     assert content.headers["Content-Length"] == str(len(b"# v2\n"))
     assert content.text == "# v2\n"
+
+
+@pytest.mark.integration
+def test_publish_rejects_rendered_summary_field(
+    monkeypatch: pytest.MonkeyPatch,
+    migrated_registry_database: str,
+) -> None:
+    monkeypatch.setenv("DATABASE_URL", migrated_registry_database)
+
+    with TestClient(create_app()) as client:
+        payload = _request("1.0.0")
+        payload["content"]["rendered_summary"] = "Legacy summary field"
+
+        response = client.post(
+            "/skills/python.legacy-summary/versions",
+            json=payload,
+            headers=_headers("publisher-token"),
+        )
+
+    assert response.status_code == 422, response.text
 
 
 @pytest.mark.integration
@@ -271,6 +318,8 @@ def test_publish_reuses_digest_backed_content_rows_for_identical_content(
     counts = _query_storage_counts(migrated_registry_database, slug=slug)
 
     assert first["content"]["checksum"]["digest"] == second["content"]["checksum"]["digest"]
+    assert first["provenance"] is None
+    assert second["provenance"] is None
     assert counts == {
         "version_count": 2,
         "distinct_content_fk_count": 1,
@@ -745,3 +794,103 @@ def test_publish_intent_requires_existing_or_missing_slug_as_declared(
     assert publish_existing.status_code == 201
     assert publish_missing.status_code == 404
     assert publish_missing.json()["error"]["code"] == "SKILL_NOT_FOUND"
+
+
+@pytest.mark.integration
+def test_audit_events_cover_publish_discovery_exact_reads_and_lifecycle(
+    monkeypatch: pytest.MonkeyPatch,
+    migrated_registry_database: str,
+) -> None:
+    monkeypatch.setenv("DATABASE_URL", migrated_registry_database)
+    slug = f"python.audit.{uuid4().hex}"
+
+    with TestClient(create_app()) as client:
+        publish_response = client.post(
+            f"/skills/{slug}/versions",
+            json=_request(
+                "1.0.0",
+                intent="create_skill",
+                trust_tier="internal",
+                provenance={
+                    "repo_url": "https://github.com/example/skills",
+                    "commit_sha": "0123456789abcdef0123456789abcdef01234567",
+                    "tree_path": f"skills/{slug}",
+                    "publisher_identity": "ci/example-release",
+                },
+            ),
+            headers=_headers("publisher-token"),
+        )
+        denied_publish = client.post(
+            f"/skills/{slug}.policy/versions",
+            json=_request("1.0.0", trust_tier="internal"),
+            headers=_headers("publisher-token"),
+        )
+        discovery = client.post(
+            "/discovery",
+            json={"name": "Python Lint"},
+            headers=_headers("reader-token"),
+        )
+        resolution = client.get(
+            f"/resolution/{slug}/1.0.0",
+            headers=_headers("reader-token"),
+        )
+        metadata = client.get(
+            f"/skills/{slug}/versions/1.0.0",
+            headers=_headers("reader-token"),
+        )
+        content = client.get(
+            f"/skills/{slug}/versions/1.0.0/content",
+            headers=_headers("reader-token"),
+        )
+        archived = client.patch(
+            f"/skills/{slug}/versions/1.0.0/status",
+            json={"status": "archived"},
+            headers=_headers("admin-token"),
+        )
+        denied_status = client.patch(
+            f"/skills/{slug}/versions/1.0.0/status",
+            json={"status": "published"},
+            headers=_headers("admin-token"),
+        )
+        denied_metadata = client.get(
+            f"/skills/{slug}/versions/1.0.0",
+            headers=_headers("reader-token"),
+        )
+
+    assert publish_response.status_code == 201
+    assert denied_publish.status_code == 403
+    assert discovery.status_code == 200
+    assert resolution.status_code == 200
+    assert metadata.status_code == 200
+    assert content.status_code == 200
+    assert archived.status_code == 200
+    assert denied_status.status_code == 403
+    assert denied_metadata.status_code == 403
+
+    audit_events = _query_audit_events(migrated_registry_database)
+    event_types = [event["event_type"] for event in audit_events]
+
+    assert "skill.version_published" in event_types
+    assert "skill.version_publish_denied" in event_types
+    assert "skill.search_performed" in event_types
+    assert "skill.version_resolution_read" in event_types
+    assert "skill.version_metadata_read" in event_types
+    assert "skill.version_content_read" in event_types
+    assert "skill.version_status_updated" in event_types
+    assert "skill.version_status_update_denied" in event_types
+    assert "skill.version_exact_read_denied" in event_types
+
+    publish_event = next(
+        event for event in audit_events if event["event_type"] == "skill.version_published"
+    )
+    denied_publish_event = next(
+        event for event in audit_events if event["event_type"] == "skill.version_publish_denied"
+    )
+    denied_read_event = next(
+        event for event in audit_events if event["event_type"] == "skill.version_exact_read_denied"
+    )
+
+    assert publish_event["payload"]["publisher_identity"] == "ci/example-release"
+    assert publish_event["payload"]["policy_profile_at_publish"] == "default"
+    assert denied_publish_event["payload"]["reason_code"] == "POLICY_PROVENANCE_REQUIRED"
+    assert denied_read_event["payload"]["surface"] == "metadata"

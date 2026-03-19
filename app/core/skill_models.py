@@ -33,7 +33,6 @@ class SkillContentInput:
     """Publish-time markdown content."""
 
     raw_markdown: str
-    rendered_summary: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,7 +87,6 @@ class SkillContentSummary:
 
     checksum: SkillChecksum
     size_bytes: int
-    rendered_summary: str | None
 
 
 @dataclass(frozen=True, slots=True)

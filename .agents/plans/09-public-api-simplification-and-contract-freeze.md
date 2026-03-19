@@ -19,7 +19,7 @@ Freeze the final public registry contract around the hard-cut route split introd
   - lifecycle and governance operations
 - Keep `resolution` as a first-class public surface rather than collapsing it into fetch.
 - Keep fetch exact and singular as the public contract; do not reintroduce batch-only metadata or content fetch routes.
-- Treat the Plan 07 route set as the stable simple baseline for Plans 09-14; later work may refine payload fields, headers, and policy behavior, but it must not add new public read endpoint families.
+- Treat the Plan 07 route set as the stable simple baseline for Plans 09-15; later work may refine payload fields, headers, and policy behavior, but it must not add new public read endpoint families.
 - Remove roadmap commitments to:
   - public `/discovery/skills/search`
   - compatibility aliases or deprecation bridge routes for removed read APIs
@@ -46,7 +46,7 @@ Freeze the final public registry contract around the hard-cut route split introd
 - No plan language treats `/resolution/*` as an internal-only experiment or a route family to be removed.
 - No plan language keeps batch-only metadata or content fetch routes in the baseline contract.
 - No compatibility facade, alias, or deprecation bridge is planned for removed read APIs.
-- Later plans 10-14 preserve the same simple public read endpoint surface from Plan 07.
+- Later plans 10-15 preserve the same simple public read endpoint surface from Plan 07.
 - The frozen contract remains execution-agnostic and excludes solving, reranking, lock generation, and runtime planning semantics.
 
 ## Test Plan

@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from app.core.audit_events import build_search_audit_event
 from app.core.governance import CallerIdentity, GovernancePolicy, LifecycleStatus, TrustTier
 from app.core.ports import AuditPort, SearchCandidatesRequest, SkillSearchPort
 from app.intelligence.search_ranking import (
@@ -131,11 +132,13 @@ class SkillSearchService:
             )
         )
 
-        self._audit_recorder.record_event(
-            event_type="skill.search_performed",
+        event = build_search_audit_event(
+            caller=caller,
+            policy_profile=self._governance_policy.profile_name,
             payload=build_search_audit_payload(
                 request=normalized_request,
                 result_count=len(results),
             ),
         )
+        self._audit_recorder.record_event(event_type=event.event_type, payload=event.payload)
         return results

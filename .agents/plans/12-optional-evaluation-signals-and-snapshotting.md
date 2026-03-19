@@ -51,3 +51,10 @@ This milestone is post-launch and optional. It is not part of MVP readiness, rea
 - Determinism test proving exact coordinate fetch stays stable regardless of evaluation state.
 - If snapshots are introduced, repeated reads against a pinned snapshot return stable discovery results for the same request body.
 - Audit test covering evaluation and snapshot events when those features are enabled.
+
+## Plan 15 Follow-On Note (2026-03-19)
+- Semantic retrieval with `pgvector` and "used together" co-usage ranking
+  signals have been split into Plan 15 as a dedicated post-launch discovery
+  milestone.
+- This plan remains focused on generic evaluation-derived metadata and optional
+  snapshotting rather than owning the hybrid semantic retrieval design.

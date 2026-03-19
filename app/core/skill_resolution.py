@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.core.governance import CallerIdentity, GovernancePolicy
-from app.core.ports import ExactSkillCoordinate, SkillRelationshipReadPort
+from app.core.audit_events import build_exact_read_audit_event, build_exact_read_denied_audit_event
+from app.core.governance import CallerIdentity, GovernancePolicy, PolicyViolation
+from app.core.ports import AuditPort, ExactSkillCoordinate, SkillRelationshipReadPort
 from app.core.skill_models import SkillRelationshipSelector, SkillVersionNotFoundError
 
 
@@ -25,9 +26,11 @@ class SkillResolutionService:
         self,
         *,
         relationship_reader: SkillRelationshipReadPort,
+        audit_recorder: AuditPort,
         governance_policy: GovernancePolicy,
     ) -> None:
         self._relationship_reader = relationship_reader
+        self._audit_recorder = audit_recorder
         self._governance_policy = governance_policy
 
     def get_direct_dependencies(
@@ -46,12 +49,29 @@ class SkillResolutionService:
             raise SkillVersionNotFoundError(slug=slug, version=version)
 
         stored = stored_sources[0]
-        self._governance_policy.ensure_exact_read_allowed(
-            caller=caller,
-            lifecycle_status=stored.lifecycle_status,
-        )
+        try:
+            self._governance_policy.ensure_exact_read_allowed(
+                caller=caller,
+                lifecycle_status=stored.lifecycle_status,
+            )
+        except PolicyViolation as exc:
+            denied_event = build_exact_read_denied_audit_event(
+                caller=caller,
+                slug=stored.slug,
+                version=stored.version,
+                lifecycle_status=stored.lifecycle_status,
+                trust_tier=stored.trust_tier,
+                surface="resolution",
+                policy_profile=self._governance_policy.profile_name,
+                reason_code=exc.code,
+            )
+            self._audit_recorder.record_event(
+                event_type=denied_event.event_type,
+                payload=denied_event.payload,
+            )
+            raise
 
-        return ResolvedSkillDependencies(
+        resolved = ResolvedSkillDependencies(
             slug=stored.slug,
             version=stored.version,
             depends_on=tuple(
@@ -66,3 +86,14 @@ class SkillResolutionService:
                 if selector.edge_type == "depends_on"
             ),
         )
+        event = build_exact_read_audit_event(
+            caller=caller,
+            slug=stored.slug,
+            version=stored.version,
+            lifecycle_status=stored.lifecycle_status,
+            trust_tier=stored.trust_tier,
+            surface="resolution",
+            policy_profile=self._governance_policy.profile_name,
+        )
+        self._audit_recorder.record_event(event_type=event.event_type, payload=event.payload)
+        return resolved

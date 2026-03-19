@@ -90,6 +90,8 @@ class SkillVersion(Base):
     provenance_repo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     provenance_commit_sha: Mapped[str | None] = mapped_column(Text, nullable=True)
     provenance_tree_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    provenance_publisher_identity: Mapped[str | None] = mapped_column(Text, nullable=True)
+    policy_profile_at_publish: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

@@ -23,8 +23,7 @@ body:
       "intent": "create_skill",
       "version": "{{sanity_version_1}}",
       "content": {
-        "raw_markdown": "# Postman Primary Skill v1\n\nRun `{{runId}}` primary skill version 1.\n",
-        "rendered_summary": "Postman primary skill version 1."
+        "raw_markdown": "# Postman Primary Skill v1\n\nRun `{{runId}}` primary skill version 1.\n"
       },
       "metadata": {
         "name": "Postman Primary Skill",

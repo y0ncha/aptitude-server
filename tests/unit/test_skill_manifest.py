@@ -80,9 +80,10 @@ def test_publish_request_accepts_governance_block_with_provenance() -> None:
             "governance": {
                 "trust_tier": "internal",
                 "provenance": {
-                    "repo_url": "https://github.com/acme/python-lint",
-                    "commit_sha": "0123456789abcdef0123456789abcdef01234567",
-                    "tree_path": "skills/python/lint",
+                    "repo_url": "  https://github.com/acme/python-lint  ",
+                    "commit_sha": "0123456789ABCDEF0123456789ABCDEF01234567",
+                    "tree_path": "  skills/python/lint  ",
+                    "publisher_identity": "  ci/acme-release  ",
                 },
             },
         }
@@ -91,6 +92,27 @@ def test_publish_request_accepts_governance_block_with_provenance() -> None:
     assert request.governance.trust_tier == "internal"
     assert request.governance.provenance is not None
     assert request.governance.provenance.commit_sha.endswith("4567")
+    assert request.governance.provenance.repo_url == "https://github.com/acme/python-lint"
+    assert request.governance.provenance.tree_path == "skills/python/lint"
+    assert request.governance.provenance.publisher_identity == "ci/acme-release"
+
+
+@pytest.mark.unit
+def test_publish_request_rejects_blank_trimmed_publisher_identity() -> None:
+    with pytest.raises(ValidationError):
+        SkillVersionCreateRequest.model_validate(
+            {
+                **_request(),
+                "governance": {
+                    "trust_tier": "internal",
+                    "provenance": {
+                        "repo_url": "https://github.com/acme/python-lint",
+                        "commit_sha": "0123456789abcdef0123456789abcdef01234567",
+                        "publisher_identity": "   ",
+                    },
+                },
+            }
+        )
 
 
 @pytest.mark.unit
@@ -129,6 +151,20 @@ def test_publish_request_rejects_invalid_dependency_constraint_syntax() -> None:
 def test_publish_request_rejects_unknown_fields() -> None:
     with pytest.raises(ValidationError):
         SkillVersionCreateRequest.model_validate({**_request(), "extra_field": "not allowed"})
+
+
+@pytest.mark.unit
+def test_publish_request_rejects_rendered_summary_field() -> None:
+    with pytest.raises(ValidationError):
+        SkillVersionCreateRequest.model_validate(
+            {
+                **_request(),
+                "content": {
+                    "raw_markdown": "# Python Lint\n",
+                    "rendered_summary": "Legacy summary field",
+                },
+            }
+        )
 
 
 @pytest.mark.unit

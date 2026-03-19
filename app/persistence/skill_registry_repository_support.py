@@ -178,7 +178,6 @@ def to_stored_skill_version(entity: SkillVersion) -> StoredSkillVersion:
         version_checksum_digest=entity.checksum_digest,
         content_checksum_digest=entity.content.checksum_digest,
         content_size_bytes=entity.content.storage_size_bytes,
-        rendered_summary=entity.content.rendered_summary,
         name=entity.metadata_row.name,
         description=entity.metadata_row.description,
         tags=tuple(entity.metadata_row.tags),
@@ -305,4 +304,6 @@ def to_provenance(entity: SkillVersion) -> ProvenanceMetadata | None:
         repo_url=entity.provenance_repo_url,
         commit_sha=entity.provenance_commit_sha,
         tree_path=entity.provenance_tree_path,
+        publisher_identity=entity.provenance_publisher_identity,
+        policy_profile=entity.policy_profile_at_publish,
     )

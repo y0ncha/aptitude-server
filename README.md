@@ -20,7 +20,7 @@ full catalog.
 
 ## Service Boundary
 
-This repository follows the boundary defined in [`docs/scope.md`](docs/scope.md):
+This repository follows the boundary defined in [`docs/scope.md`](docs/project/scope.md):
 
 - Server owns data-local work: publish, discovery, resolution, fetch, governance, and audit.
 - Client owns decision-local work: prompt interpretation, reranking, final selection,
@@ -95,7 +95,7 @@ Notes:
   and `Cache-Control: public, immutable` headers on found parts.
 
 When running locally, interactive docs are available at `http://127.0.0.1:8000/docs`.
-The human-readable API reference is [`docs/api-contract.md`](docs/api-contract.md).
+The human-readable API reference is [`docs/api-contract.md`](docs/project/api-contract.md).
 
 ## Governance and Auth
 
@@ -193,7 +193,7 @@ make db-down
 ## Project References
 
 - Product requirements: [`docs/prd.md`](docs/prd.md)
-- Server/client boundary: [`docs/scope.md`](docs/scope.md)
+- Server/client boundary: [`docs/scope.md`](docs/project/scope.md)
 - Storage decision: [`docs/storage-strategy.md`](docs/storage-strategy.md)
 - Product and architecture overview: [`docs/overview.md`](docs/overview.md)
-- API contract: [`docs/api-contract.md`](docs/api-contract.md)
+- API contract: [`docs/api-contract.md`](docs/project/api-contract.md)

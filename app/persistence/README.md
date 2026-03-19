@@ -17,9 +17,13 @@ Implements core persistence ports for:
 
 - `db.py`: engine/session lifecycle and readiness probe adapter.
 - `skill_registry_repository.py`: SQLAlchemy adapter for skill catalog persistence
-  plus selector and advisory search read-model writes from authored manifest contracts.
+  plus selector, advisory provenance snapshot, transactional mutation audit, and advisory search read-model writes from authored manifest contracts.
 - `models/`: ORM models.
 
 ## Contracts
 
 Adapters in this package implement protocols defined in `app.core.ports`.
+The repository owns atomic publish/status writes, including audit rows that must
+commit in the same transaction as authoritative lifecycle changes.
+Canonical short summary text lives on `skill_metadata.description`; deduplicated
+`skill_contents` rows persist only markdown plus checksum and size metadata.

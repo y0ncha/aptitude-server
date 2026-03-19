@@ -19,7 +19,7 @@ Strict project rules and approval gates remain centralized in
 
 ## Source and Instruction Files
 1. Product and architecture intent: [`docs/overview.md`](../docs/overview.md)
-2. Server/Resolver boundary contract: [`docs/scope.md`](../docs/scope.md)
+2. Server/Resolver boundary contract: [`docs/scope.md`](../docs/project/scope.md)
 3. Server product requirements: [`docs/prd.md`](../docs/prd.md)
 4. Strict repo rules: [`rules/repo.md`](rules/repo.md)
 5. Roadmap and sequencing: [`plans/roadmap.md`](plans/roadmap.md)
@@ -73,19 +73,19 @@ Use the smallest relevant set of docs for the task at hand.
 ### Architecture and Scope
 
 - [`docs/overview.md`](../docs/overview.md): product intent and system framing
-- [`docs/scope.md`](../docs/scope.md): server vs client boundary and ownership
+- [`docs/scope.md`](../docs/project/scope.md): server vs client boundary and ownership
 - [`docs/prd.md`](../docs/prd.md): requirements and acceptance-level product constraints
 
 ### API and Contract Work
 
-- [`docs/api-contract.md`](../docs/api-contract.md): route behavior and public request/response contract
+- [`docs/api-contract.md`](../docs/project/api-contract.md): route behavior and public request/response contract
 - `postman/collections/`: concrete request examples and manual validation flows
 
 ### Persistence and Discovery
 
 - [`docs/schema.md`](../docs/schema.md): canonical schema shape and table responsibilities
 - [`docs/storage-strategy.md`](../docs/storage-strategy.md): storage design decisions and tradeoffs
-- [`docs/discovery-candidate-selection.md`](../docs/discovery-candidate-selection.md): discovery matching, filtering, ranking, and per-slug collapse
+- [`docs/discovery-candidate-selection.md`](../docs/project/discovery-candidate-selection.md): discovery matching, filtering, ranking, and per-slug collapse
 
 ### Delivery History
 

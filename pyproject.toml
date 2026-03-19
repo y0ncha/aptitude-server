@@ -15,6 +15,7 @@ dependencies = [
     "pytest>=9.0.2",
     "starlette>=0.52.1",
     "fastapi-cloud-cli==0.15.0",
+    "pydantic-extra-types==2.11.1",
 ]
 
 [project.optional-dependencies]

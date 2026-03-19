@@ -8,6 +8,7 @@ from app.core.governance import (
     CallerIdentity,
     GovernancePolicy,
     PolicyViolation,
+    ProvenanceMetadata,
     SkillGovernanceInput,
 )
 from app.core.settings import Settings
@@ -77,3 +78,56 @@ def test_governance_policy_rejects_archived_to_published_transition() -> None:
         )
 
     assert exc_info.value.code == "POLICY_STATUS_TRANSITION_FORBIDDEN"
+
+
+@pytest.mark.unit
+def test_prepare_publish_governance_normalizes_provenance_and_attaches_policy_profile() -> None:
+    policy = GovernancePolicy(
+        profile=Settings.model_validate(
+            {"DATABASE_URL": "postgresql+psycopg://postgres:postgres@127.0.0.1:5432/aptitude"}
+        ).active_policy
+    )
+
+    governance = policy.prepare_publish_governance(
+        caller=CallerIdentity(token="publisher", scopes=frozenset({"publish"})),
+        governance=SkillGovernanceInput(
+            trust_tier="internal",
+            provenance=ProvenanceMetadata(
+                repo_url="  https://github.com/acme/python-lint  ",
+                commit_sha="AABBCCDDEEFF00112233445566778899AABBCCDD",
+                tree_path="  skills/python/lint  ",
+                publisher_identity="  ci/acme-release  ",
+            ),
+        ),
+    )
+
+    assert governance.provenance is not None
+    assert governance.provenance.repo_url == "https://github.com/acme/python-lint"
+    assert governance.provenance.commit_sha == "aabbccddeeff00112233445566778899aabbccdd"
+    assert governance.provenance.tree_path == "skills/python/lint"
+    assert governance.provenance.publisher_identity == "ci/acme-release"
+    assert governance.provenance.policy_profile == "default"
+
+
+@pytest.mark.unit
+def test_prepare_publish_governance_rejects_blank_trimmed_provenance_fields() -> None:
+    policy = GovernancePolicy(
+        profile=Settings.model_validate(
+            {"DATABASE_URL": "postgresql+psycopg://postgres:postgres@127.0.0.1:5432/aptitude"}
+        ).active_policy
+    )
+
+    with pytest.raises(PolicyViolation) as exc_info:
+        policy.prepare_publish_governance(
+            caller=CallerIdentity(token="publisher", scopes=frozenset({"publish"})),
+            governance=SkillGovernanceInput(
+                trust_tier="internal",
+                provenance=ProvenanceMetadata(
+                    repo_url="https://github.com/acme/python-lint",
+                    commit_sha="0123456789abcdef",
+                    publisher_identity="   ",
+                ),
+            ),
+        )
+
+    assert exc_info.value.code == "POLICY_PROVENANCE_INVALID"

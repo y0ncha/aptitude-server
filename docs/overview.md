@@ -125,11 +125,12 @@ Persistence ensures durability and integrity.
 
 1. **Creation**
    - A skill is authored with manifest + artifact.
+   - Publisher tooling may collect advisory provenance such as repository, commit, path, and publisher identity.
    - Direct dependencies are declared explicitly.
 2. **Validation**
    - Schema, immutability, and governance checks run on server.
 3. **Versioning**
-   - Immutable `skill@version` is persisted with checksum/provenance.
+   - Immutable `skill@version` is persisted with checksum plus advisory provenance validated by the server.
 4. **Indexing**
    - Metadata/read models are refreshed for discovery APIs.
 

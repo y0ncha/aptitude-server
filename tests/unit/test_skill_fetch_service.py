@@ -17,6 +17,17 @@ from app.core.skill_fetch import SkillFetchService
 from app.core.skill_models import SkillVersionNotFoundError
 
 
+class FakeAuditRecorder:
+    """Collect audit events emitted by the fetch service."""
+
+    def __init__(self) -> None:
+        self.events: list[str] = []
+
+    def record_event(self, *, event_type: str, payload: dict[str, object] | None = None) -> None:
+        del payload
+        self.events.append(event_type)
+
+
 class FakeVersionReader:
     """Stub version reader keyed by exact immutable coordinates."""
 
@@ -64,7 +75,6 @@ def _stored_version(*, lifecycle_status: str = "published") -> StoredSkillVersio
         version_checksum_digest="version-digest",
         content_checksum_digest="content-digest",
         content_size_bytes=18,
-        rendered_summary="Lint Python files.",
         name="Python Lint",
         description="Linting skill",
         tags=("python", "lint"),
@@ -97,8 +107,10 @@ def _stored_content(*, lifecycle_status: str = "published") -> StoredSkillVersio
 
 @pytest.mark.unit
 def test_get_version_metadata_returns_immutable_detail() -> None:
+    audit_recorder = FakeAuditRecorder()
     service = SkillFetchService(
         version_reader=FakeVersionReader(version=_stored_version()),
+        audit_recorder=audit_recorder,
         governance_policy=_governance_policy(),
     )
 
@@ -111,12 +123,15 @@ def test_get_version_metadata_returns_immutable_detail() -> None:
     assert detail.slug == "python.lint"
     assert detail.version == "1.0.0"
     assert detail.content.checksum.digest == "content-digest"
+    assert audit_recorder.events == ["skill.version_metadata_read"]
 
 
 @pytest.mark.unit
 def test_get_content_returns_markdown_document() -> None:
+    audit_recorder = FakeAuditRecorder()
     service = SkillFetchService(
         version_reader=FakeVersionReader(content=_stored_content()),
+        audit_recorder=audit_recorder,
         governance_policy=_governance_policy(),
     )
 
@@ -129,12 +144,14 @@ def test_get_content_returns_markdown_document() -> None:
     assert document.raw_markdown == "# Python Lint\n"
     assert document.checksum.digest == "content-digest"
     assert document.size_bytes == len(b"# Python Lint\n")
+    assert audit_recorder.events == ["skill.version_content_read"]
 
 
 @pytest.mark.unit
 def test_get_version_metadata_raises_not_found_for_unknown_coordinate() -> None:
     service = SkillFetchService(
         version_reader=FakeVersionReader(),
+        audit_recorder=FakeAuditRecorder(),
         governance_policy=_governance_policy(),
     )
 
@@ -148,8 +165,10 @@ def test_get_version_metadata_raises_not_found_for_unknown_coordinate() -> None:
 
 @pytest.mark.unit
 def test_get_content_applies_exact_read_policy() -> None:
+    audit_recorder = FakeAuditRecorder()
     service = SkillFetchService(
         version_reader=FakeVersionReader(content=_stored_content(lifecycle_status="archived")),
+        audit_recorder=audit_recorder,
         governance_policy=_governance_policy(),
     )
 
@@ -159,3 +178,5 @@ def test_get_content_applies_exact_read_policy() -> None:
             slug="python.lint",
             version="1.0.0",
         )
+
+    assert audit_recorder.events == ["skill.version_exact_read_denied"]

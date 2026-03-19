@@ -29,6 +29,22 @@ def _normalize_unique_tags(value: list[str]) -> list[str]:
     return normalized
 
 
+def _normalize_required_text(value: str) -> str:
+    normalized = value.strip()
+    if not normalized:
+        raise ValueError("Value must not be blank.")
+    return normalized
+
+
+def _normalize_optional_text(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    if not normalized:
+        raise ValueError("Value must not be blank.")
+    return normalized
+
+
 class DependencySelectorRequest(BaseModel):
     """Direct dependency selector authored for one version."""
 
@@ -132,10 +148,6 @@ class SkillVersionContentRequest(BaseModel):
     """Markdown body provided at publish time."""
 
     raw_markdown: str = Field(description="Canonical markdown body for this immutable version.")
-    rendered_summary: str | None = Field(
-        default=None,
-        description="Optional pre-rendered short summary stored alongside the markdown.",
-    )
 
     model_config = ConfigDict(extra="forbid")
 
@@ -207,8 +219,24 @@ class ProvenanceRequest(BaseModel):
     repo_url: str = Field(min_length=1, max_length=500)
     commit_sha: str = Field(min_length=7, max_length=64, pattern=r"^[0-9A-Fa-f]+$")
     tree_path: str | None = Field(default=None, min_length=1, max_length=500)
+    publisher_identity: str | None = Field(default=None, min_length=1, max_length=200)
 
     model_config = ConfigDict(extra="forbid")
+
+    @field_validator("repo_url")
+    @classmethod
+    def normalize_repo_url(cls, value: str) -> str:
+        return _normalize_required_text(value)
+
+    @field_validator("commit_sha")
+    @classmethod
+    def normalize_commit_sha(cls, value: str) -> str:
+        return _normalize_required_text(value).lower()
+
+    @field_validator("tree_path", "publisher_identity")
+    @classmethod
+    def normalize_optional_fields(cls, value: str | None) -> str | None:
+        return _normalize_optional_text(value)
 
 
 class SkillGovernanceRequest(BaseModel):
@@ -255,9 +283,6 @@ class SkillContentSummaryResponse(BaseModel):
 
     checksum: ChecksumResponse
     size_bytes: int = Field(description="UTF-8 byte length of the stored markdown.")
-    rendered_summary: str | None = Field(
-        description="Optional pre-rendered short summary stored with the markdown.",
-    )
 
 
 class SkillMetadataResponse(BaseModel):
@@ -274,12 +299,21 @@ class SkillMetadataResponse(BaseModel):
     security_score: float | None = None
 
 
+class TrustContextResponse(BaseModel):
+    """Server-derived trust context returned with advisory provenance."""
+
+    trust_tier: TrustTier
+    policy_profile: str
+
+
 class ProvenanceResponse(BaseModel):
     """Minimal provenance returned by immutable version reads."""
 
     repo_url: str
     commit_sha: str
     tree_path: str | None = None
+    publisher_identity: str | None = None
+    trust_context: TrustContextResponse | None = None
 
 
 class SkillVersionMetadataResponse(BaseModel):

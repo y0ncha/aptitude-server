@@ -16,3 +16,8 @@ Hosts externally exposed API boundaries and request/response contracts.
 
 Interface code depends on core services/contracts and must not bypass core
 behavior by calling persistence adapters directly.
+Publisher-supplied provenance remains part of the publish contract only; the
+interface must not introduce provenance-specific route families or make read
+paths depend on publisher-side state.
+Exact metadata responses expose summary text only through
+`metadata.description`; `content` includes checksum and size metadata only.

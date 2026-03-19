@@ -22,8 +22,7 @@ body:
       "intent": "publish_version",
       "version": "{{sanity_version_2}}",
       "content": {
-        "raw_markdown": "# Postman Primary Skill v2\n\nRun `{{runId}}` primary skill version 2 with a larger body for discovery and content checks.\n",
-        "rendered_summary": "Postman primary skill version 2."
+        "raw_markdown": "# Postman Primary Skill v2\n\nRun `{{runId}}` primary skill version 2 with a larger body for discovery and content checks.\n"
       },
       "metadata": {
         "name": "Postman Primary Skill",

@@ -58,3 +58,6 @@ it does not expand transitive graphs or select versions for constraints.
 The exact fetch routes intentionally separate immutable metadata from markdown
 bytes so metadata reads stay JSON-oriented while raw content reads preserve
 cache-friendly markdown delivery headers.
+Publisher-supplied provenance may appear only on publish/exact metadata
+responses as advisory data; discovery, resolution, and raw content routes remain
+independent of Git, filesystem, or publisher-side state.
