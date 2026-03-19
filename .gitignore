@@ -13,6 +13,8 @@ ENV/
 .env
 .env/
 .env.*
+!.env.example
+!**/.env.example
 .direnv/
 
 
@@ -54,3 +56,5 @@ htmlcov/
 .uv-cache
 
 .tmp_migration.db
+
+deployment/
