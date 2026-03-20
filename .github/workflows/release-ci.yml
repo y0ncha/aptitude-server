@@ -4,11 +4,20 @@ on:
   push:
     branches:
       - master
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "app/**"
+      - "alembic/**"
+      - "alembic.ini"
+      - "pyproject.toml"
+      - "uv.lock"
 
 permissions:
   contents: read
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   IMAGE_NAME: ${{ vars.DOCKER_IMAGE != '' && vars.DOCKER_IMAGE || 'y0ncha/aptitude-server' }}
 
 jobs:
@@ -18,7 +27,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
