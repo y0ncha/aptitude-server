@@ -3,18 +3,14 @@ name: Release CI
 on:
   pull_request:
     branches:
-      - main
-  push:
-    branches:
-      - main
+      - master
 
 permissions:
   contents: read
 
 jobs:
-  main-release-gate:
-    if: github.event_name == 'pull_request'
-    name: Main Release Gate
+  master-release-gate:
+    name: Master Release Gate
     runs-on: ubuntu-latest
 
     services:
@@ -71,24 +67,6 @@ jobs:
 
       - name: Run integration tests
         run: uv run --extra dev pytest tests/integration
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build multi-platform Docker image
-        run: docker buildx build --platform linux/amd64,linux/arm64 --tag aptitude-server .
-
-  main-push-docker-build:
-    if: github.event_name == 'push'
-    name: Main Push Docker Build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
