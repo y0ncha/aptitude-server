@@ -4,6 +4,14 @@ on:
   push:
     branches:
       - master
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "app/**"
+      - "alembic/**"
+      - "alembic.ini"
+      - "pyproject.toml"
+      - "uv.lock"
 
 permissions:
   contents: read
