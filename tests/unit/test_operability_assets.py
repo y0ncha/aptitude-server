@@ -48,6 +48,10 @@ def test_grafana_dashboard_covers_key_registry_surfaces() -> None:
     )
 
     metrics_document = metrics_dashboard.read_text()
+    assert "Request Rate (5m)" in metrics_document
+    assert "HTTP Error Responses (15m)" in metrics_document
+    assert "HTTP Latency p95" in metrics_document
+    assert "Dependency Readiness" not in metrics_document
     assert "aptitude_http_requests_total" in metrics_document
     assert "aptitude_http_request_duration_seconds" in metrics_document
     assert "publish" in metrics_document
@@ -60,13 +64,20 @@ def test_grafana_dashboard_covers_key_registry_surfaces() -> None:
 
     logs_document = logs_dashboard.read_text()
     assert '"uid": "loki"' in logs_document
+    assert "Log Level Histogram (5m)" in logs_document
+    assert "Request Logs" in logs_document
+    assert "Request Correlation" in logs_document
+    assert "Failed Request Logs" in logs_document
     assert "request_id" in logs_document
     assert "event_type" in logs_document
     assert "service_name" in logs_document
     assert "aptitude-server" in logs_document
+    assert 'logger=\\"app.main\\"' in logs_document
+    assert 'event_type=\\"request.completed\\"' in logs_document
+    assert "count_over_time" in logs_document
+    assert 'level=\\"ERROR\\"' in logs_document
+    assert "status_code >= 400" in logs_document
     assert "line_format" in logs_document
-    assert "http_route" in logs_document
-    assert "duration_ms" in logs_document
 
 
 @pytest.mark.unit

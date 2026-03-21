@@ -22,33 +22,131 @@
         "type": "loki",
         "uid": "loki"
       },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 82,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "INFO"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "WARNING"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ERROR"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
       "gridPos": {
-        "h": 9,
+        "h": 6,
         "w": 24,
         "x": 0,
         "y": 0
       },
       "id": 1,
       "options": {
-        "dedupStrategy": "none",
-        "enableLogDetails": true,
-        "prettifyLogMessage": false,
-        "showCommonLabels": false,
-        "showLabels": false,
-        "showTime": true,
-        "sortOrder": "Descending",
-        "wrapLogMessage": true
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "targets": [
         {
           "editorMode": "code",
-          "expr": "{service_name=\"aptitude-server\"} | json | line_format \"{{.level}} {{.logger}} {{.message}} request_id={{.request_id}} route={{.http_route}} status={{.status_code}} duration_ms={{.duration_ms}} event_type={{.event_type}}\"",
+          "expr": "sum by (level) (count_over_time({service_name=\"aptitude-server\"} | json | logger=\"app.main\" [5m]))",
+          "legendFormat": "{{level}}",
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "Recent Application Logs",
-      "type": "logs"
+      "title": "Log Level Histogram (5m)",
+      "type": "timeseries"
     },
     {
       "datasource": {
@@ -56,10 +154,10 @@
         "uid": "loki"
       },
       "gridPos": {
-        "h": 9,
-        "w": 12,
+        "h": 10,
+        "w": 24,
         "x": 0,
-        "y": 9
+        "y": 6
       },
       "id": 2,
       "options": {
@@ -75,12 +173,12 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "{service_name=\"aptitude-server\"} | json | level=\"ERROR\" | line_format \"{{.level}} {{.logger}} {{.message}} request_id={{.request_id}} route={{.http_route}} status={{.status_code}} duration_ms={{.duration_ms}}\"",
+          "expr": "{service_name=\"aptitude-server\"} | json | logger=\"app.main\" | event_type=\"request.completed\" | line_format \"{{.http_method}} {{.http_route}} status={{.status_code}} duration_ms={{.duration_ms}} request_id={{.request_id}}\"",
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "Error and Failure Logs",
+      "title": "Request Logs",
       "type": "logs"
     },
     {
@@ -91,8 +189,8 @@
       "gridPos": {
         "h": 9,
         "w": 12,
-        "x": 12,
-        "y": 9
+        "x": 0,
+        "y": 16
       },
       "id": 3,
       "options": {
@@ -108,12 +206,78 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "{service_name=\"aptitude-server\"} |= \"$request_id\" | json | line_format \"{{.level}} {{.logger}} {{.message}} request_id={{.request_id}} route={{.http_route}} status={{.status_code}} duration_ms={{.duration_ms}} event_type={{.event_type}}\"",
+          "expr": "{service_name=\"aptitude-server\"} | json | level=\"ERROR\" | line_format \"{{.logger}} {{.message}} request_id={{.request_id}} route={{.http_route}} status={{.status_code}}\"",
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "Request Correlation by request_id",
+      "title": "Error Logs",
+      "type": "logs"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "id": 4,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "{service_name=\"aptitude-server\"} | json | logger=\"app.main\" | status_code >= 400 | line_format \"{{.http_method}} {{.http_route}} status={{.status_code}} duration_ms={{.duration_ms}} request_id={{.request_id}}\"",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Failed Request Logs",
+      "type": "logs"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 25
+      },
+      "id": 5,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "{service_name=\"aptitude-server\"} |= \"$request_id\" | json | logger=\"app.main\" | line_format \"{{.http_method}} {{.http_route}} status={{.status_code}} duration_ms={{.duration_ms}} event={{.event_type}} request_id={{.request_id}}\"",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Request Correlation",
       "type": "logs"
     },
     {
@@ -129,13 +293,13 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 18
+        "y": 35
       },
-      "id": 4,
+      "id": 6,
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum by (event_type) (count_over_time({service_name=\"aptitude-server\"} | json | event_type != \"\" [15m]))",
+          "expr": "sum by (event_type) (count_over_time({service_name=\"aptitude-server\"} | json | logger=\"app.main\" | event_type != \"\" [15m]))",
           "legendFormat": "{{event_type}}",
           "queryType": "range",
           "refId": "A"
