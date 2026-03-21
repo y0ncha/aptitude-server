@@ -23,3 +23,7 @@ def test_ci_workflows_boot_runner_tests_from_compose_db(workflow_path: str) -> N
     assert "services:" not in document
     assert "docker compose up -d db" in document
     assert "docker compose exec -T db pg_isready -U postgres -d aptitude" in document
+    assert document.index("docker compose up -d db") < document.index("uv run alembic upgrade head")
+    assert document.index("docker compose up -d db") < document.index(
+        "uv run --extra dev pytest tests/integration"
+    )

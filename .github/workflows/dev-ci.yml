@@ -50,6 +50,17 @@ jobs:
       - name: Import app entrypoint
         run: uv run python -c "from app.main import app"
 
+      - name: Start compose database
+        run: |
+          docker compose up -d db
+          for attempt in $(seq 1 30); do
+            if docker compose exec -T db pg_isready -U postgres -d aptitude >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          docker compose exec -T db pg_isready -U postgres -d aptitude
+
       - name: Run database migrations
         run: uv run alembic upgrade head
 
@@ -66,17 +77,6 @@ jobs:
 
       - name: Validate observability compose profile
         run: docker compose --profile observability config >/dev/null
-
-      - name: Start compose database
-        run: |
-          docker compose up -d db
-          for attempt in $(seq 1 30); do
-            if docker compose exec -T db pg_isready -U postgres -d aptitude >/dev/null 2>&1; then
-              break
-            fi
-            sleep 1
-          done
-          docker compose exec -T db pg_isready -U postgres -d aptitude
 
       - name: Build app image for smoke test
         run: docker buildx build --load --platform linux/amd64 --tag y0ncha/aptitude-server:latest .
