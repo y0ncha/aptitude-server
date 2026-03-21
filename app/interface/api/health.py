@@ -6,6 +6,7 @@ from fastapi import APIRouter, Response
 
 from app.core.dependencies import ReadinessServiceDep, SettingsDep
 from app.interface.dto.health import HealthzResponse, ReadinessCheck, ReadyzResponse
+from app.observability.metrics import set_database_readiness
 
 router = APIRouter(tags=["health"])
 
@@ -20,6 +21,7 @@ def get_healthz(settings: SettingsDep) -> HealthzResponse:
 def get_readyz(response: Response, readiness_service: ReadinessServiceDep) -> ReadyzResponse:
     """Return dependency readiness, including a database connectivity check."""
     readiness_report = readiness_service.get_status()
+    set_database_readiness(is_ready=readiness_report.status == "ready")
     checks = [
         ReadinessCheck(name=check.name, status=check.status, detail=check.detail)
         for check in readiness_report.checks

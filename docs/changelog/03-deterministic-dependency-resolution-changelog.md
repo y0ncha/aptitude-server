@@ -6,7 +6,7 @@ This changelog documents implementation alignment for [.agents/plans/03-determin
 
 - The manifest contract in [app/interface/api/skills.py](../../app/interface/api/skills.py) now treats `depends_on` as authored dependency metadata, not as a server-side solve instruction.
 - `depends_on` accepts either an exact `version` or a validated `version_constraint`, plus optional `optional` and `markers` fields. See [app/interface/api/skills.py](../../app/interface/api/skills.py) and [tests/unit/test_skill_manifest.py](../../tests/unit/test_skill_manifest.py).
-- Exact version reads preserve authored ordering and omit unset dependency fields by storing the raw manifest JSON and using response models with unset-field exclusion. See [app/core/skill_registry.py](../../app/core/skill_registry.py) and [app/interface/api/skills.py](../../app/interface/api/skills.py).
+- Exact version reads preserve authored ordering and omit unset dependency fields by storing the raw manifest JSON and using response models with unset-field exclusion. See [app/core/skills/registry.py](../../app/core/skills/registry.py) and [app/interface/api/skills.py](../../app/interface/api/skills.py).
 - Publish-time edge projection for `depends_on` and `extends` is implemented in [app/persistence/skill_registry_repository.py](../../app/persistence/skill_registry_repository.py) and materialized in [app/persistence/models/skill_relationship_edge.py](https://github.com/y0ncha/Aptitude/blob/515649b385befd1a96c126ab50ecc679dfce256e/app/persistence/models/skill_relationship_edge.py).
 - Alembic migration `0003` creates the relationship-edge read model and backfills existing manifest data, while preserving authored selector text in `target_version_selector`. See [alembic/versions/0003_deterministic_dependency_resolution.py](https://github.com/y0ncha/Aptitude/blob/515649b385befd1a96c126ab50ecc679dfce256e/alembic/versions/0003_deterministic_dependency_resolution.py).
 - Client-owned routes and persistence concepts remain absent and are guarded by [tests/unit/test_registry_api_boundary.py](../../tests/unit/test_registry_api_boundary.py).
@@ -25,7 +25,7 @@ flowchart LR
 
 Why this shape:
 - The server publishes immutable dependency metadata and a derived edge read model, but it never becomes the source of truth for solved dependency closure. See [app/persistence/skill_registry_repository.py](../../app/persistence/skill_registry_repository.py) and [tests/unit/test_registry_api_boundary.py](../../tests/unit/test_registry_api_boundary.py).
-- Authored manifests are preserved verbatim enough to keep client-facing reads deterministic across repeated requests. See [app/core/skill_registry.py](../../app/core/skill_registry.py) and [tests/integration/test_skill_registry_endpoints.py](../../tests/integration/test_skill_registry_endpoints.py).
+- Authored manifests are preserved verbatim enough to keep client-facing reads deterministic across repeated requests. See [app/core/skills/registry.py](../../app/core/skills/registry.py) and [tests/integration/test_skill_registry_endpoints.py](../../tests/integration/test_skill_registry_endpoints.py).
 
 ## Runtime Flow
 
@@ -52,7 +52,7 @@ sequenceDiagram
 ## Design Notes
 
 - `depends_on` validation is intentionally strict: each dependency declaration must provide exactly one selector source, either `version` or `version_constraint`. See [app/interface/api/skills.py](../../app/interface/api/skills.py) and [tests/unit/test_skill_manifest.py](../../tests/unit/test_skill_manifest.py).
-- The core layer keeps a `raw_manifest_json` copy in [app/core/skill_registry.py](../../app/core/skill_registry.py) so the server can return authored dependency ordering without reconstructing or normalizing the payload.
+- The core layer keeps a `raw_manifest_json` copy in [app/core/skills/registry.py](../../app/core/skills/registry.py) so the server can return authored dependency ordering without reconstructing or normalizing the payload.
 - The read model stores selector text in `target_version_selector`, which allows exact pins and range-style constraints to be indexed uniformly without pretending they are solved outcomes. See [app/persistence/models/skill_relationship_edge.py](https://github.com/y0ncha/Aptitude/blob/515649b385befd1a96c126ab50ecc679dfce256e/app/persistence/models/skill_relationship_edge.py) and [alembic/versions/0003_deterministic_dependency_resolution.py](https://github.com/y0ncha/Aptitude/blob/515649b385befd1a96c126ab50ecc679dfce256e/alembic/versions/0003_deterministic_dependency_resolution.py).
 - The edge projection is intentionally narrower than the manifest contract: only `depends_on` and `extends` are materialized into the read model today. `conflicts_with` and `overlaps_with` remain part of the manifest payload but are not expanded into separate edge tables yet. See [app/persistence/skill_registry_repository.py](../../app/persistence/skill_registry_repository.py).
 

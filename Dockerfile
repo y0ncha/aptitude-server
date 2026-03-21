@@ -27,7 +27,9 @@ RUN adduser \
     --disabled-password \
     --gecos "" \
     --home /home/appuser \
-    appuser
+    appuser \
+ && mkdir -p /var/log/aptitude \
+ && chown -R appuser:appuser /var/log/aptitude
 
 COPY --from=builder /app/.venv /app/.venv
 COPY alembic.ini pyproject.toml uv.lock ./

@@ -2,34 +2,25 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, status
 
 from app.core.dependencies import ReadCallerDep, SkillDiscoveryServiceDep
-from app.core.skill_discovery import SkillDiscoveryRequest as CoreSkillDiscoveryRequest
-from app.interface.dto.errors import ErrorEnvelope
+from app.core.skills.discovery import SkillDiscoveryRequest as CoreSkillDiscoveryRequest
+from app.interface.api.response_docs import ApiResponses, invalid_request_response
 from app.interface.dto.examples import (
     DISCOVERY_REQUEST_EXAMPLE,
     DISCOVERY_RESPONSE_EXAMPLE,
-    INVALID_REQUEST_ERROR_EXAMPLE,
 )
-from app.interface.dto.skills import SkillDiscoveryRequest, SkillDiscoveryResponse
+from app.interface.dto.skills_discovery import SkillDiscoveryRequest, SkillDiscoveryResponse
 
 router = APIRouter(tags=["discovery"])
-
-ApiResponses = dict[int | str, dict[str, Any]]
 
 DISCOVERY_RESPONSES: ApiResponses = {
     status.HTTP_200_OK: {
         "description": "Ordered candidate slugs returned successfully.",
         "content": {"application/json": {"example": DISCOVERY_RESPONSE_EXAMPLE}},
     },
-    status.HTTP_422_UNPROCESSABLE_CONTENT: {
-        "model": ErrorEnvelope,
-        "description": "The discovery request is invalid.",
-        "content": {"application/json": {"example": INVALID_REQUEST_ERROR_EXAMPLE}},
-    },
+    **invalid_request_response(description="The discovery request is invalid."),
 }
 
 

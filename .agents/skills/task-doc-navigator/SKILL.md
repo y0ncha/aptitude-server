@@ -69,8 +69,8 @@ Use for:
 ### Delivery history and sequencing
 
 Open:
-- active `plans/XX-*.md`
-- `plans/roadmap.md`
+- active `.agents/plans/XX-*.md`
+- `.agents/plans/roadmap.md`
 - `docs/changelog/`
 - `memory/meta.md`
 

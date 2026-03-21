@@ -8,7 +8,7 @@ import pytest
 
 from app.core.governance import ProvenanceMetadata
 from app.core.ports import StoredRelationshipSelector, StoredSkillVersion
-from app.core.skill_version_projections import to_skill_version_detail
+from app.core.skills.projections import to_skill_version_detail
 
 
 def _stored_version() -> StoredSkillVersion:

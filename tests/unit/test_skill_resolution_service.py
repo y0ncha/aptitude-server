@@ -15,8 +15,8 @@ from app.core.ports import (
     StoredRelationshipSelector,
     StoredSkillRelationshipSource,
 )
-from app.core.skill_models import SkillVersionNotFoundError
-from app.core.skill_resolution import SkillResolutionService
+from app.core.skills.models import SkillVersionNotFoundError
+from app.core.skills.resolution import SkillResolutionService
 
 
 class FakeAuditRecorder:

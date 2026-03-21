@@ -1,0 +1,90 @@
+{
+  ".agents/plans/01-foundation-service-skeleton.md": {
+    "prefix_length": 1929,
+    "prefix_sha256": "97cb602eca2bc87e82e1155d545610a10cb3b506e71858ab1c8f9d70f5537386"
+  },
+  ".agents/plans/02-immutable-skill-registry.md": {
+    "prefix_length": 2209,
+    "prefix_sha256": "7dcab64775d238324f628e562191eada34963dd1865878537d0d6495daf96b24"
+  },
+  ".agents/plans/03-deterministic-dependency-resolution.md": {
+    "prefix_length": 2271,
+    "prefix_sha256": "62db4718483aec10c27da4f715b55cef6fe585a043651e2a374acb730434d6c7"
+  },
+  ".agents/plans/04-repository-api-contract-v1.md": {
+    "prefix_length": 2819,
+    "prefix_sha256": "1dc84e5e404ce3b6d7728df2115120670d8a8f9b725373f6f304d7550d96cb17"
+  },
+  ".agents/plans/05-metadata-search-ranking.md": {
+    "prefix_length": 8360,
+    "prefix_sha256": "bdbc0137cd1359d273a9e906de4da00472c7ee73ddfff708905831f94fce401b"
+  },
+  ".agents/plans/06-policy-conflict-governance.md": {
+    "prefix_length": 3044,
+    "prefix_sha256": "f717c9fd962c36bdf03edb0ef5bd0929c182f133ca2acc2d1f4f519d8cfae889"
+  },
+  ".agents/plans/07-mvp-read-api-hard-cut.md": {
+    "prefix_length": 4664,
+    "prefix_sha256": "df07e6694abee0497d593b733f02142b69858196985b80654c6431f403239bbc"
+  },
+  ".agents/plans/08-canonical-postgres-storage-finalization.md": {
+    "prefix_length": 5425,
+    "prefix_sha256": "6ee2889ba653c65a5a41883a406f90e4009623f2629ae80f1b3ee293117a88b9"
+  },
+  ".agents/plans/09-public-api-simplification-and-contract-freeze.md": {
+    "prefix_length": 4117,
+    "prefix_sha256": "8201e34145d68ac3d016d32a53a3938fd227794af3e424d0d0797e1158fd0be9"
+  },
+  ".agents/plans/10-governance-provenance-and-audit-completion.md": {
+    "prefix_length": 5006,
+    "prefix_sha256": "760437cdb66df6e04986444625f2bbd2f4018ac058d80e1cc53cdc988b7fe669"
+  },
+  ".agents/plans/11-operability-and-release-readiness.md": {
+    "prefix_length": 7431,
+    "prefix_sha256": "8fd97eaa3fe176a3b69f4d669354c0af82d8e35d72a89b49dd3788aedfddc02e"
+  },
+  "docs/changelog/01-foundation-service-skeleton-changelog.md": {
+    "prefix_length": 5922,
+    "prefix_sha256": "83a766f789d7748823b6c27edb900610bca998a0021f36ee4c33e0d43a5978f2"
+  },
+  "docs/changelog/02-immutable-skill-registry-changelog.md": {
+    "prefix_length": 7911,
+    "prefix_sha256": "c1f0c606573e5ecbf2a1b7809487f476029086c3292e9a737f2e28ea9859a33a"
+  },
+  "docs/changelog/03-deterministic-dependency-resolution-changelog.md": {
+    "prefix_length": 8321,
+    "prefix_sha256": "1db01809c3a22a96ad1929e1f7a5682c29fdd6497f3bcac6114047d44090173c"
+  },
+  "docs/changelog/04-repository-api-contract-v1-changelog.md": {
+    "prefix_length": 7873,
+    "prefix_sha256": "e7da0e6ac3f168b6e32a1e90179915c31ef2d341990a0be4369c0c3d5af271a3"
+  },
+  "docs/changelog/05-metadata-search-ranking-changelog.md": {
+    "prefix_length": 19376,
+    "prefix_sha256": "df39c062f4e81d39b066d8294093161c1b2564a1687c5bef695bcc14f134e722"
+  },
+  "docs/changelog/06-policy-conflict-governance-changelog.md": {
+    "prefix_length": 14035,
+    "prefix_sha256": "4e926f712577a7a3770aa64acd95cd44fe22b0af46f567adfd7e409da9338d2c"
+  },
+  "docs/changelog/07-mvp-read-api-hard-cut-changelog.md": {
+    "prefix_length": 15783,
+    "prefix_sha256": "2a898bc857bcc46604118b58d0f03b25dfab92ea8f5e61fb04499cdea80dd11f"
+  },
+  "docs/changelog/08-canonical-postgres-storage-finalization-changelog.md": {
+    "prefix_length": 9809,
+    "prefix_sha256": "a898ec6e54b617eb7b3cd92882718d96a500e8f4f22ef28fc2184f4e751fd4ab"
+  },
+  "docs/changelog/09-public-api-simplification-and-contract-freeze-changelog.md": {
+    "prefix_length": 8089,
+    "prefix_sha256": "82ce986aa627cfafa0aa5e0be0bdf9c558469dd4dc1abd4e37975526ad2282b6"
+  },
+  "docs/changelog/10-governance-provenance-and-audit-completion-changelog.md": {
+    "prefix_length": 8691,
+    "prefix_sha256": "f1b7f34f5eb5cb0fe88e05a2ae537828266340f0802e14101be7da047c3fba47"
+  },
+  "docs/changelog/11-operability-and-release-readiness-changelog.md": {
+    "prefix_length": 21239,
+    "prefix_sha256": "55769e0061d6a658bf09195f24a8d50ff89578d336942303ac13d7e3835151b9"
+  }
+}

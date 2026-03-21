@@ -2,6 +2,9 @@
 
 HTTP API routers for the service.
 
+Use [docs/project/api-contract.md](../../../docs/project/api-contract.md) as the
+canonical HTTP contract for route semantics.
+
 ## Purpose
 
 Defines FastAPI routes, request validation, response schemas, and error
@@ -19,8 +22,12 @@ adapter layer between FastAPI and core services.
 - `skills.py`: publish and lifecycle-status routes.
 - `errors.py`: stable JSON error envelope helpers and FastAPI exception
   handlers.
-- `skill_api_support.py`: DTO-to-core translation helpers and shared response
-  mappers for skill routes.
+- `response_docs.py`: shared OpenAPI response fragments reused across route files.
+- `skill_api_support_publish.py`: publish request-to-core command translation.
+- `skill_api_support_fetch.py`: exact metadata response mapping.
+- `skill_api_support_resolution.py`: dependency resolution response mapping.
+- `skill_api_support_lifecycle.py`: lifecycle-status response mapping.
+- `skill_api_support.py`: compatibility re-export for the split mapper modules.
 - `__init__.py`: package marker.
 
 ## Route Surface
@@ -44,10 +51,17 @@ adapter layer between FastAPI and core services.
 
 Routers should stay thin. They validate HTTP input, call a core service, and
 translate results into public DTOs without embedding business policy.
+Routers that depend on the skill-domain core should import from
+`app.core.skills.*` rather than assuming a flat `app.core` module layout.
+Health and metrics routes should use `app.observability.*` helpers for runtime
+concerns instead of treating logging, readiness, or metrics as skill-domain
+core logic.
 `errors.py` owns the public error envelope so request validation failures,
 policy violations, and explicit API errors share one JSON shape.
-`skill_api_support.py` centralizes mapping code so route handlers do not
-duplicate DTO conversion or publish-command assembly.
+The `skill_api_support_*.py` modules are split by API surface so route handlers
+reuse mapping code without collecting every conversion function in one file.
+`response_docs.py` centralizes repeated OpenAPI response fragments so request
+validation and exact-version-not-found responses stay consistent across routes.
 `POST /skills/{slug}/versions` requires `intent=create_skill|publish_version`
 so the API can distinguish first publication from publication to an existing
 skill slug.

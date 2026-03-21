@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.core.readiness import ReadinessService
+from app.observability.readiness import ReadinessService
 
 
 class HealthyProbe:

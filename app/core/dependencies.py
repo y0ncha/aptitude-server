@@ -12,13 +12,14 @@ from fastapi import Depends, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.governance import CallerIdentity
-from app.core.readiness import ReadinessService
 from app.core.settings import Settings, get_settings
-from app.core.skill_discovery import SkillDiscoveryService
-from app.core.skill_fetch import SkillFetchService
-from app.core.skill_registry import SkillRegistryService
-from app.core.skill_resolution import SkillResolutionService
+from app.core.skills.discovery import SkillDiscoveryService
+from app.core.skills.fetch import SkillFetchService
+from app.core.skills.registry import SkillRegistryService
+from app.core.skills.resolution import SkillResolutionService
 from app.interface.api.errors import ApiError
+from app.observability.readiness import ReadinessService
+from app.service_container import ServiceContainer
 
 # Shared settings dependency used by route handlers and adapters.
 SettingsDep = Annotated[Settings, Depends(get_settings)]
@@ -30,15 +31,12 @@ BearerCredentialsDep = Annotated[
 
 
 def get_readiness_service(request: Request) -> ReadinessService:
-    """Return the process-scoped readiness service from app state.
+    """Return the process-scoped readiness service from the service container.
 
     Raises:
-        RuntimeError: If startup wiring did not initialize `readiness_service`.
+        RuntimeError: If startup wiring did not initialize the service container.
     """
-    service = getattr(request.app.state, "readiness_service", None)
-    if not isinstance(service, ReadinessService):
-        raise RuntimeError("Readiness service is not initialized.")
-    return service
+    return _service_container(request).readiness_service
 
 
 # Typed alias for injecting the readiness service via FastAPI dependencies.
@@ -46,16 +44,12 @@ ReadinessServiceDep = Annotated[ReadinessService, Depends(get_readiness_service)
 
 
 def get_skill_registry_service(request: Request) -> SkillRegistryService:
-    """Return the immutable skill catalog service from app state.
+    """Return the immutable skill catalog service from the service container.
 
     Raises:
-        RuntimeError: If startup wiring did not initialize
-            `skill_registry_service`.
+        RuntimeError: If startup wiring did not initialize the service container.
     """
-    service = getattr(request.app.state, "skill_registry_service", None)
-    if not isinstance(service, SkillRegistryService):
-        raise RuntimeError("Skill catalog service is not initialized.")
-    return service
+    return _service_container(request).skill_registry_service
 
 
 # Typed alias for injecting the skill catalog service in endpoint signatures.
@@ -63,36 +57,35 @@ SkillRegistryServiceDep = Annotated[SkillRegistryService, Depends(get_skill_regi
 
 
 def get_skill_discovery_service(request: Request) -> SkillDiscoveryService:
-    """Return the process-scoped discovery service from app state."""
-    service = getattr(request.app.state, "skill_discovery_service", None)
-    if not isinstance(service, SkillDiscoveryService):
-        raise RuntimeError("Skill discovery service is not initialized.")
-    return service
+    """Return the process-scoped discovery service from the service container."""
+    return _service_container(request).skill_discovery_service
 
 
 SkillDiscoveryServiceDep = Annotated[SkillDiscoveryService, Depends(get_skill_discovery_service)]
 
 
 def get_skill_fetch_service(request: Request) -> SkillFetchService:
-    """Return the process-scoped exact fetch service from app state."""
-    service = getattr(request.app.state, "skill_fetch_service", None)
-    if not isinstance(service, SkillFetchService):
-        raise RuntimeError("Skill fetch service is not initialized.")
-    return service
+    """Return the process-scoped exact fetch service from the service container."""
+    return _service_container(request).skill_fetch_service
 
 
 SkillFetchServiceDep = Annotated[SkillFetchService, Depends(get_skill_fetch_service)]
 
 
 def get_skill_resolution_service(request: Request) -> SkillResolutionService:
-    """Return the process-scoped resolution service from app state."""
-    service = getattr(request.app.state, "skill_resolution_service", None)
-    if not isinstance(service, SkillResolutionService):
-        raise RuntimeError("Skill resolution service is not initialized.")
-    return service
+    """Return the process-scoped resolution service from the service container."""
+    return _service_container(request).skill_resolution_service
 
 
 SkillResolutionServiceDep = Annotated[SkillResolutionService, Depends(get_skill_resolution_service)]
+
+
+def _service_container(request: Request) -> ServiceContainer:
+    """Return the typed application service container from app state."""
+    services = getattr(request.app.state, "services", None)
+    if not isinstance(services, ServiceContainer):
+        raise RuntimeError("Service container is not initialized.")
+    return services
 
 
 def _caller_from_request(

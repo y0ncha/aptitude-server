@@ -37,7 +37,7 @@ scripts:
         pm.expect(json.slug).to.eql(pm.collectionVariables.get('sanity_primary_slug'));
         pm.expect(json.version).to.eql(pm.collectionVariables.get('sanity_version_2'));
         pm.expect(json.status).to.eql('deprecated');
-        pm.expect(json.trust_tier).to.eql('untrusted');
+        pm.expect(json.trust_tier).to.eql('internal');
         pm.expect(json.is_current_default).to.eql(false);
         pm.expect(json.lifecycle_changed_at).to.be.a('string').and.not.empty;
       });
