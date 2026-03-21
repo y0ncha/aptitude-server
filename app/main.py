@@ -2,25 +2,22 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from time import perf_counter
 from typing import cast
+from uuid import uuid4
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
+from fastapi.routing import APIRoute
 from starlette.types import ExceptionHandler
 
-from app.audit.recorder import SQLAlchemyAuditRecorder
-from app.core.governance import GovernancePolicy, PolicyViolation
-from app.core.logging import build_logging_config, configure_logging
-from app.core.readiness import ReadinessService
+from app.core.governance import PolicyViolation
 from app.core.settings import get_settings, reset_settings_cache
-from app.core.skill_discovery import SkillDiscoveryService
-from app.core.skill_fetch import SkillFetchService
-from app.core.skill_registry import SkillRegistryService
-from app.core.skill_resolution import SkillResolutionService
 from app.interface.api.discovery import router as discovery_router
 from app.interface.api.errors import (
     ApiError,
@@ -30,15 +27,22 @@ from app.interface.api.errors import (
 )
 from app.interface.api.fetch import router as fetch_router
 from app.interface.api.health import router as health_router
+from app.interface.api.operability import router as operability_router
 from app.interface.api.resolution import router as resolution_router
 from app.interface.api.skills import router as skills_router
-from app.persistence.db import (
-    SQLAlchemyDatabaseReadinessProbe,
-    dispose_engine,
-    get_session_factory,
-    init_engine,
+from app.observability.context import clear_request_context, set_request_context
+from app.observability.logging import (
+    build_logging_config,
+    configure_logging,
+    normalize_log_format,
 )
-from app.persistence.skill_registry_repository import SQLAlchemySkillRegistryRepository
+from app.observability.metrics import (
+    observe_http_request,
+    outcome_for_status_code,
+    surface_for_request,
+)
+from app.persistence.db import dispose_engine
+from app.service_container import build_service_container
 
 STARTUP_BANNER = r"""
       //| |
@@ -51,7 +55,12 @@ STARTUP_BANNER = r"""
 """
 
 # Configure logging before lifespan starts so startup logs are consistently formatted.
-configure_logging(os.getenv("LOG_LEVEL", "INFO"))
+configure_logging(
+    os.getenv("LOG_LEVEL", "INFO"),
+    log_format=normalize_log_format(os.getenv("LOG_FORMAT")),
+    app_env=os.getenv("APP_ENV", "dev"),
+    log_file_path=os.getenv("LOG_FILE_PATH"),
+)
 
 logger = logging.getLogger(__name__)
 
@@ -72,38 +81,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Initialize process-wide resources and tear them down on shutdown."""
     reset_settings_cache()
     settings = get_settings()
-    configure_logging(settings.log_level)
+    configure_logging(
+        settings.log_level,
+        log_format=settings.log_format,
+        app_env=settings.app_env,
+        log_file_path=settings.log_file_path,
+    )
     if settings.auth_tokens:
         logger.info("loaded %d auth token(s) from settings", len(settings.auth_tokens))
     else:
         logger.warning(
             "no auth tokens configured; authenticated endpoints will reject all bearer tokens"
         )
-    init_engine(settings.database_url)
-    session_factory = get_session_factory()
-    registry_repository = SQLAlchemySkillRegistryRepository(session_factory=session_factory)
-    audit_recorder = SQLAlchemyAuditRecorder(session_factory=session_factory)
-    governance_policy = GovernancePolicy(profile=settings.active_policy)
-    app.state.skill_registry_service = SkillRegistryService(
-        registry=registry_repository,
-        audit_recorder=audit_recorder,
-        governance_policy=governance_policy,
-    )
-    app.state.skill_discovery_service = SkillDiscoveryService(
-        search_port=registry_repository,
-        audit_recorder=audit_recorder,
-        governance_policy=governance_policy,
-    )
-    app.state.skill_fetch_service = SkillFetchService(
-        version_reader=registry_repository,
-        audit_recorder=audit_recorder,
-        governance_policy=governance_policy,
-    )
-    app.state.skill_resolution_service = SkillResolutionService(
-        relationship_reader=registry_repository,
-        audit_recorder=audit_recorder,
-        governance_policy=governance_policy,
-    )
+    app.state.services = build_service_container(settings=settings)
     logger.info("service startup complete")
     try:
         yield
@@ -120,9 +110,73 @@ def create_app() -> FastAPI:
         version=API_VERSION,
         lifespan=lifespan,
     )
-    app.state.readiness_service = ReadinessService(
-        database_probe=SQLAlchemyDatabaseReadinessProbe(),
-    )
+
+    @app.middleware("http")
+    async def observability_middleware(
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
+        request_id = request.headers.get("X-Request-ID") or str(uuid4())
+        started_at = perf_counter()
+        request.state.request_id = request_id
+        set_request_context(
+            request_id=request_id,
+            http_method=request.method,
+            client_ip=request.client.host if request.client is not None else None,
+            user_agent=request.headers.get("user-agent"),
+        )
+
+        try:
+            response = await call_next(request)
+        except Exception as exc:
+            route = _route_template(request)
+            duration_seconds = perf_counter() - started_at
+            status_code = 500
+            set_request_context(
+                http_route=route,
+                status_code=status_code,
+                duration_ms=round(duration_seconds * 1000, 3),
+                surface=surface_for_request(method=request.method, route=route),
+                outcome=outcome_for_status_code(status_code),
+                exception_type=type(exc).__name__,
+            )
+            observe_http_request(
+                method=request.method,
+                route=route,
+                status_code=status_code,
+                duration_seconds=duration_seconds,
+            )
+            logger.exception("request failed", extra={"event_type": "request.failed"})
+            clear_request_context()
+            raise
+
+        route = _route_template(request)
+        duration_seconds = perf_counter() - started_at
+        outcome = outcome_for_status_code(response.status_code)
+        error_code = (
+            getattr(request.state, "error_code", None)
+            or getattr(response, "error_code", None)
+            or _response_error_code(response)
+        )
+        set_request_context(
+            http_route=route,
+            status_code=response.status_code,
+            duration_ms=round(duration_seconds * 1000, 3),
+            surface=surface_for_request(method=request.method, route=route),
+            outcome=outcome,
+            error_code=error_code,
+        )
+        observe_http_request(
+            method=request.method,
+            route=route,
+            status_code=response.status_code,
+            duration_seconds=duration_seconds,
+        )
+        response.headers.setdefault("X-Request-ID", request_id)
+        logger.info("request complete", extra={"event_type": "request.completed"})
+        clear_request_context()
+        return response
+
     app.add_exception_handler(
         RequestValidationError,
         cast(ExceptionHandler, cast(object, request_validation_exception_handler)),
@@ -136,6 +190,7 @@ def create_app() -> FastAPI:
         cast(ExceptionHandler, cast(object, policy_violation_exception_handler)),
     )
     app.include_router(health_router)
+    app.include_router(operability_router)
     app.include_router(discovery_router)
     app.include_router(resolution_router)
     app.include_router(fetch_router)
@@ -151,6 +206,7 @@ def run_dev_server() -> None:
     import uvicorn
 
     log_level = os.getenv("LOG_LEVEL", "INFO")
+    log_format = normalize_log_format(os.getenv("LOG_FORMAT"))
     print(STARTUP_BANNER)
     reload_enabled = os.getenv("UVICORN_RELOAD", "true").lower() in {
         "1",
@@ -163,9 +219,39 @@ def run_dev_server() -> None:
         host="127.0.0.1",
         port=int(os.getenv("PORT", "8000")),
         reload=reload_enabled,
-        log_config=build_logging_config(log_level),
+        log_config=build_logging_config(
+            log_level,
+            log_format=log_format,
+            log_file_path=os.getenv("LOG_FILE_PATH"),
+        ),
     )
 
 
 if __name__ == "__main__":
     run_dev_server()
+
+
+def _route_template(request: Request) -> str:
+    route = request.scope.get("route")
+    if isinstance(route, APIRoute):
+        return route.path
+    return "__unmatched__"
+
+
+def _response_error_code(response: Response) -> str | None:
+    if response.status_code < 400:
+        return None
+    if "application/json" not in response.headers.get("content-type", ""):
+        return None
+    body = getattr(response, "body", None)
+    if not isinstance(body, bytes):
+        return None
+    try:
+        payload = json.loads(body)
+    except json.JSONDecodeError:
+        return None
+    error = payload.get("error")
+    if not isinstance(error, dict):
+        return None
+    code = error.get("code")
+    return code if isinstance(code, str) else None

@@ -57,4 +57,5 @@ Deliver a production-ready, PyPI-like immutable registry service (`aptitude-serv
 - The Plan 07 insertion and 07-13 to 08-14 shift are intentional cleanup to keep the MVP path simple before implementation work is finalized.
 - Plan filenames and titles may be corrected before implementation when the existing milestone framing is architecturally wrong.
 - Completed plans are never renamed or renumbered.
+- Plans `01` through `11` and changelogs `01` through `11` are protected history. Clarifications must be appended as dated notes; do not rewrite existing body text.
 - New scope changes create a new numbered plan file.

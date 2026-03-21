@@ -1,5 +1,9 @@
 # Publisher, Server, Resolver Architecture Draft
 
+> Status: draft/context document, not the canonical `aptitude-server` contract.
+> Use [docs/README.md](../README.md), [docs/project/api-contract.md](../project/api-contract.md),
+> and [docs/project/scope.md](../project/scope.md) for the live server baseline.
+
 This draft proposes a concrete target architecture for three Aptitude surfaces:
 
 - `aptitude-publisher`: authoring and CI client for publish and lifecycle workflows

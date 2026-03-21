@@ -22,6 +22,7 @@ def _routes() -> set[tuple[str, str]]:
 def test_public_route_surface_exposes_exact_get_fetch_routes() -> None:
     routes = _routes()
 
+    assert ("/metrics", "GET") in routes
     assert ("/skills/{slug}/versions", "POST") in routes
     assert ("/discovery", "POST") in routes
     assert ("/resolution/{slug}/{version}", "GET") in routes
@@ -49,11 +50,13 @@ def test_openapi_contract_matches_exact_get_fetch_routes() -> None:
     paths = schema["paths"]
     request_schema = schema["components"]["schemas"]["SkillVersionCreateRequest"]
 
+    assert "/metrics" in paths
     assert "/discovery" in paths
     assert "/resolution/{slug}/{version}" in paths
     assert "/skills/{slug}/versions" in paths
     assert "/skills/{slug}/versions/{version}" in paths
     assert "/skills/{slug}/versions/{version}/content" in paths
+    assert "get" in paths["/metrics"]
     assert "post" in paths["/skills/{slug}/versions"]
     assert "post" in paths["/discovery"]
     assert "get" in paths["/resolution/{slug}/{version}"]

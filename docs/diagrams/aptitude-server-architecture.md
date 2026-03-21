@@ -5,11 +5,24 @@ post-launch discovery extension from Plan 15.
 
 ## 1. Server System View
 
+The interface is intentionally split into discovery, resolution, and fetch
+instead of one generic read endpoint:
+
+- Discovery is search-shaped load and should stay bound to compact ranking
+  projections.
+- Resolution is graph-shaped load and should read only authored selector edges.
+- Fetch is payload-shaped load and can optimize for immutable metadata/content
+  delivery and caching.
+
+That separation keeps index-heavy candidate generation, lightweight dependency
+reads, and heavier content retrieval from competing on the same path.
+
 ```mermaid
 flowchart LR
 
     Publisher["Publisher Tooling<br/>manifest + markdown<br/>optional provenance"]
     Resolver["aptitude-resolver / MCP / CLI<br/>prompt interpretation<br/>reranking + final selection<br/>dependency solving + lock generation"]
+    Ops["Ops / observability<br/>health probes<br/>metrics scrape<br/>logs + runbooks"]
 
     subgraph Server["aptitude-server"]
         direction TB
@@ -18,7 +31,7 @@ flowchart LR
 
         subgraph Interface["Interface Layer"]
             direction LR
-            Health["GET /healthz<br/>GET /readyz"]
+            Health["GET /healthz<br/>GET /readyz<br/>GET /metrics"]
             Publish["POST /skills/{slug}/versions<br/>PATCH lifecycle status"]
             Discovery["POST /discovery<br/>ordered slug candidates"]
             Resolution["GET /resolution/{slug}/{version}<br/>exact first-degree reads"]
@@ -71,6 +84,7 @@ flowchart LR
     Resolver -->|"candidate retrieval"| Discovery
     Resolver -->|"exact relationship reads"| Resolution
     Resolver -->|"exact metadata/content fetch"| Fetch
+    Ops <-->|"health / readiness / metrics"| Health
 
     Main --> Health
     Main --> Publish
@@ -125,7 +139,7 @@ flowchart LR
     classDef future fill:#f1f3f5,stroke:#868e96,color:#495057,stroke-dasharray: 5 3;
     classDef note fill:#fff9db,stroke:#f08c00,color:#5f3b00;
 
-    class Publisher,Resolver external;
+    class Publisher,Resolver,Ops external;
     class Health,Publish,Discovery,Resolution,Fetch,Main entry;
     class RegistrySvc,DiscoverySvc,ResolutionSvc,FetchSvc,Governance,AuditEvents,Ports core;
     class Repo,Models,AuditRecorder infra;

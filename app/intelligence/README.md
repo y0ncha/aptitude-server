@@ -2,6 +2,9 @@
 
 Pure ranking, normalization, and metadata helper functions.
 
+This package stays execution-agnostic and inside the server boundary described
+in [docs/project/scope.md](../../docs/project/scope.md).
+
 ## Purpose
 
 Holds execution-agnostic intelligence helpers that core services can call

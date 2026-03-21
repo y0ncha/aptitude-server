@@ -2,6 +2,10 @@
 
 Persistence adapters and storage infrastructure.
 
+Use [docs/schema.md](../../docs/schema.md) and
+[docs/storage-strategy.md](../../docs/storage-strategy.md) as the canonical
+persistence references.
+
 ## Purpose
 
 Implements core persistence ports for:
@@ -16,8 +20,17 @@ Implements core persistence ports for:
 ## Key Files
 
 - `db.py`: engine/session lifecycle and readiness probe adapter.
-- `skill_registry_repository.py`: SQLAlchemy adapter for skill catalog persistence
-  plus selector, advisory provenance snapshot, transactional mutation audit, and advisory search read-model writes from authored manifest contracts.
+- `skill_registry_repository.py`: composed SQLAlchemy adapter that exposes the
+  existing repository class name while delegating behavior to port-aligned
+  mixins.
+- `skill_registry_repository_base.py`: shared session and helper logic for the
+  repository mixins.
+- `skill_registry_repository_writes.py`: publish/write-side repository methods.
+- `skill_registry_repository_reads.py`: exact version/content/relationship read methods.
+- `skill_registry_repository_search.py`: advisory search candidate retrieval.
+- `skill_registry_repository_status.py`: lifecycle-status update methods.
+- `skill_registry_repository_support.py`: shared projections, query helpers, and
+  search SQL.
 - `models/`: ORM models.
 
 ## Contracts
@@ -25,5 +38,8 @@ Implements core persistence ports for:
 Adapters in this package implement protocols defined in `app.core.ports`.
 The repository owns atomic publish/status writes, including audit rows that must
 commit in the same transaction as authoritative lifecycle changes.
+Persistence adapters that need skill-domain errors or service-facing models
+should import them from `app.core.skills.*`, while preserving the same
+layering boundary against the rest of core.
 Canonical short summary text lives on `skill_metadata.description`; deduplicated
 `skill_contents` rows persist only markdown plus checksum and size metadata.

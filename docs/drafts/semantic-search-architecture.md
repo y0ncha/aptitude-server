@@ -1,5 +1,10 @@
 # Semantic Search Architecture Draft
 
+> Status: draft/future-looking context only.
+> This file is not the current source of truth for the live server contract.
+> Use [docs/README.md](../README.md), [docs/project/api-contract.md](../project/api-contract.md),
+> and [docs/project/scope.md](../project/scope.md) for the live baseline.
+
 This draft proposes an additive semantic-search design for `aptitude-server`.
 
 The intent is to improve discovery recall for paraphrases, synonym-heavy queries,

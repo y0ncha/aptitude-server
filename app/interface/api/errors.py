@@ -12,6 +12,15 @@ from pydantic import ValidationError
 
 from app.core.governance import PolicyViolation
 from app.interface.dto.errors import ErrorBody, ErrorEnvelope
+from app.observability.context import set_request_context
+
+
+class ErrorJSONResponse(JSONResponse):
+    """JSON response carrying the bounded public error code for observability."""
+
+    def __init__(self, *, error_code: str, **kwargs: Any) -> None:
+        self.error_code = error_code
+        super().__init__(**kwargs)
 
 
 class ApiError(Exception):
@@ -43,6 +52,7 @@ def serialize_validation_errors(
 
 def error_response(
     *,
+    request: Request | None = None,
     status_code: int,
     code: str,
     message: str,
@@ -50,8 +60,12 @@ def error_response(
     headers: dict[str, str] | None = None,
 ) -> JSONResponse:
     """Build the stable JSON error envelope used by the API."""
+    set_request_context(error_code=code)
+    if request is not None:
+        request.state.error_code = code
     payload = ErrorEnvelope(error=ErrorBody(code=code, message=message, details=details))
-    return JSONResponse(
+    return ErrorJSONResponse(
+        error_code=code,
         status_code=status_code,
         content=payload.model_dump(mode="json"),
         headers=headers,
@@ -63,8 +77,8 @@ async def request_validation_exception_handler(
     exc: RequestValidationError,
 ) -> JSONResponse:
     """Normalize FastAPI request validation failures into the public error shape."""
-    del request
     return error_response(
+        request=request,
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         code="INVALID_REQUEST",
         message="Request validation failed.",
@@ -77,8 +91,8 @@ async def api_error_exception_handler(
     exc: ApiError,
 ) -> JSONResponse:
     """Render structured API exceptions with the public error envelope."""
-    del request
     return error_response(
+        request=request,
         status_code=exc.status_code,
         code=exc.code,
         message=exc.message,
@@ -92,8 +106,8 @@ async def policy_violation_exception_handler(
     exc: PolicyViolation,
 ) -> JSONResponse:
     """Render policy failures with the public error envelope."""
-    del request
     return error_response(
+        request=request,
         status_code=status.HTTP_403_FORBIDDEN,
         code=exc.code,
         message=str(exc),

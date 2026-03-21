@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated
 
-from fastapi import APIRouter, Path, status
+from fastapi import APIRouter, Path, Request, status
 from fastapi.responses import JSONResponse
 
 from app.core.dependencies import (
@@ -12,7 +12,7 @@ from app.core.dependencies import (
     PublishCallerDep,
     SkillRegistryServiceDep,
 )
-from app.core.skill_registry import (
+from app.core.skills.registry import (
     DuplicateSkillVersionError,
     SkillAlreadyExistsError,
     SkillNotFoundError,
@@ -20,16 +20,16 @@ from app.core.skill_registry import (
     SkillVersionNotFoundError,
 )
 from app.interface.api.errors import error_response
-from app.interface.api.skill_api_support import (
+from app.interface.api.response_docs import ApiResponses, invalid_request_response
+from app.interface.api.skill_api_support_fetch import to_metadata_response
+from app.interface.api.skill_api_support_lifecycle import to_version_status_response
+from app.interface.api.skill_api_support_publish import (
     to_create_command,
-    to_metadata_response,
-    to_version_status_response,
 )
 from app.interface.dto.errors import ErrorEnvelope
 from app.interface.dto.examples import (
     CONTENT_STORAGE_FAILURE_ERROR_EXAMPLE,
     DUPLICATE_SKILL_VERSION_ERROR_EXAMPLE,
-    INVALID_REQUEST_ERROR_EXAMPLE,
     PUBLISH_REQUEST_EXAMPLE,
     SKILL_ALREADY_EXISTS_ERROR_EXAMPLE,
     SKILL_NOT_FOUND_ERROR_EXAMPLE,
@@ -37,25 +37,19 @@ from app.interface.dto.examples import (
     SKILL_VERSION_NOT_FOUND_ERROR_EXAMPLE,
     SKILL_VERSION_STATUS_RESPONSE_EXAMPLE,
 )
-from app.interface.dto.skills import (
-    SkillVersionCreateRequest,
-    SkillVersionMetadataResponse,
+from app.interface.dto.skills_fetch import SkillVersionMetadataResponse
+from app.interface.dto.skills_lifecycle import (
     SkillVersionStatusResponse,
     SkillVersionStatusUpdateRequest,
 )
+from app.interface.dto.skills_publish import SkillVersionCreateRequest
 from app.interface.validation import SEMVER_PATTERN, SLUG_PATTERN
 
 router = APIRouter(tags=["skills"])
 
-ApiResponses = dict[int | str, dict[str, Any]]
-
-REQUEST_VALIDATION_ERROR_RESPONSE: ApiResponses = {
-    status.HTTP_422_UNPROCESSABLE_CONTENT: {
-        "model": ErrorEnvelope,
-        "description": "The request body, path parameters, or query parameters are invalid.",
-        "content": {"application/json": {"example": INVALID_REQUEST_ERROR_EXAMPLE}},
-    }
-}
+REQUEST_VALIDATION_ERROR_RESPONSE: ApiResponses = invalid_request_response(
+    description="The request body, path parameters, or query parameters are invalid."
+)
 
 PUBLISH_RESPONSES: ApiResponses = {
     status.HTTP_201_CREATED: {
@@ -129,6 +123,7 @@ STATUS_RESPONSES: ApiResponses = {
     },
 )
 def create_skill_version(
+    http_request: Request,
     slug: Annotated[
         str,
         Path(pattern=SLUG_PATTERN, description="Stable public slug for the skill identity."),
@@ -146,6 +141,7 @@ def create_skill_version(
         return to_metadata_response(stored)
     except DuplicateSkillVersionError as exc:
         return error_response(
+            request=http_request,
             status_code=status.HTTP_409_CONFLICT,
             code="DUPLICATE_SKILL_VERSION",
             message=str(exc),
@@ -153,6 +149,7 @@ def create_skill_version(
         )
     except SkillAlreadyExistsError as exc:
         return error_response(
+            request=http_request,
             status_code=status.HTTP_409_CONFLICT,
             code="SKILL_ALREADY_EXISTS",
             message=str(exc),
@@ -160,6 +157,7 @@ def create_skill_version(
         )
     except SkillNotFoundError as exc:
         return error_response(
+            request=http_request,
             status_code=status.HTTP_404_NOT_FOUND,
             code="SKILL_NOT_FOUND",
             message=str(exc),
@@ -167,6 +165,7 @@ def create_skill_version(
         )
     except SkillRegistryError as exc:
         return error_response(
+            request=http_request,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             code="CONTENT_STORAGE_FAILURE",
             message=str(exc),
@@ -183,6 +182,7 @@ def create_skill_version(
     responses=STATUS_RESPONSES,
 )
 def update_skill_version_status(
+    http_request: Request,
     request: SkillVersionStatusUpdateRequest,
     registry_service: SkillRegistryServiceDep,
     caller: AdminCallerDep,
@@ -207,6 +207,7 @@ def update_skill_version_status(
         return to_version_status_response(updated)
     except SkillVersionNotFoundError as exc:
         return error_response(
+            request=http_request,
             status_code=status.HTTP_404_NOT_FOUND,
             code="SKILL_VERSION_NOT_FOUND",
             message=str(exc),

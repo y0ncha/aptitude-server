@@ -2,43 +2,32 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated
 
-from fastapi import APIRouter, Path, Response, status
+from fastapi import APIRouter, Path, Request, Response, status
 from fastapi.responses import JSONResponse
 
 from app.core.dependencies import ReadCallerDep, SkillFetchServiceDep
-from app.core.skill_models import SkillVersionNotFoundError
+from app.core.skills.models import SkillVersionNotFoundError
 from app.interface.api.errors import error_response
-from app.interface.api.skill_api_support import to_metadata_response
-from app.interface.dto.errors import ErrorEnvelope
-from app.interface.dto.examples import (
-    INVALID_REQUEST_ERROR_EXAMPLE,
-    SKILL_VERSION_METADATA_RESPONSE_EXAMPLE,
-    SKILL_VERSION_NOT_FOUND_ERROR_EXAMPLE,
+from app.interface.api.response_docs import (
+    ApiResponses,
+    invalid_request_response,
+    skill_version_not_found_response,
 )
-from app.interface.dto.skills import SkillVersionMetadataResponse
+from app.interface.api.skill_api_support_fetch import to_metadata_response
+from app.interface.dto.examples import SKILL_VERSION_METADATA_RESPONSE_EXAMPLE
+from app.interface.dto.skills_fetch import SkillVersionMetadataResponse
 from app.interface.validation import SEMVER_PATTERN, SLUG_PATTERN
 
 router = APIRouter(tags=["fetch"])
 
-ApiResponses = dict[int | str, dict[str, Any]]
-
-NOT_FOUND_RESPONSE: ApiResponses = {
-    status.HTTP_404_NOT_FOUND: {
-        "model": ErrorEnvelope,
-        "description": "The requested immutable `slug@version` does not exist.",
-        "content": {"application/json": {"example": SKILL_VERSION_NOT_FOUND_ERROR_EXAMPLE}},
-    }
-}
-
-PATH_VALIDATION_ERROR_RESPONSE: ApiResponses = {
-    status.HTTP_422_UNPROCESSABLE_CONTENT: {
-        "model": ErrorEnvelope,
-        "description": "The path parameters are invalid.",
-        "content": {"application/json": {"example": INVALID_REQUEST_ERROR_EXAMPLE}},
-    }
-}
+NOT_FOUND_RESPONSE = skill_version_not_found_response(
+    description="The requested immutable `slug@version` does not exist."
+)
+PATH_VALIDATION_ERROR_RESPONSE = invalid_request_response(
+    description="The path parameters are invalid."
+)
 
 METADATA_RESPONSES: ApiResponses = {
     status.HTTP_200_OK: {
@@ -75,6 +64,7 @@ CONTENT_RESPONSES: ApiResponses = {
     responses=METADATA_RESPONSES,
 )
 def get_version_metadata(
+    request: Request,
     slug: Annotated[
         str,
         Path(pattern=SLUG_PATTERN, description="Stable public slug of the requested skill."),
@@ -98,6 +88,7 @@ def get_version_metadata(
         )
     except SkillVersionNotFoundError as exc:
         return error_response(
+            request=request,
             status_code=status.HTTP_404_NOT_FOUND,
             code="SKILL_VERSION_NOT_FOUND",
             message=str(exc),
@@ -116,6 +107,7 @@ def get_version_metadata(
     responses=CONTENT_RESPONSES,
 )
 def get_version_content(
+    request: Request,
     slug: Annotated[
         str,
         Path(pattern=SLUG_PATTERN, description="Stable public slug of the requested skill."),
@@ -139,6 +131,7 @@ def get_version_content(
         )
     except SkillVersionNotFoundError as exc:
         return error_response(
+            request=request,
             status_code=status.HTTP_404_NOT_FOUND,
             code="SKILL_VERSION_NOT_FOUND",
             message=str(exc),

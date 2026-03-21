@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "skills": {
+    "grafana-dashboards": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "e9b692daf06faf96fa28b2b98f50b362e68b974db5ab503963a610c719cda79b"
+    },
+    "loki-logging": {
+      "source": "bagelhole/devops-security-agent-skills",
+      "sourceType": "github",
+      "computedHash": "6f09a29729f48149a26f2a01e5e981d9add02f12abbb5c931b41adee7db7a933"
+    },
+    "prometheus-configuration": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "0731ebfe9c14a68e50e5ec852dad8e732545afb73d192fb452b816f865dc5571"
+    }
+  }
+}
