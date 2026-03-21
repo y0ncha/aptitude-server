@@ -14,10 +14,10 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.core.governance import CallerIdentity
 from app.core.readiness import ReadinessService
 from app.core.settings import Settings, get_settings
-from app.core.skill_discovery import SkillDiscoveryService
-from app.core.skill_fetch import SkillFetchService
-from app.core.skill_registry import SkillRegistryService
-from app.core.skill_resolution import SkillResolutionService
+from app.core.skills.discovery import SkillDiscoveryService
+from app.core.skills.fetch import SkillFetchService
+from app.core.skills.registry import SkillRegistryService
+from app.core.skills.resolution import SkillResolutionService
 from app.interface.api.errors import ApiError
 from app.service_container import ServiceContainer
 

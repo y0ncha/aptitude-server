@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.core.exact_read_support import ExactReadAuditInfo, enforce_and_audit_exact_read
 from app.core.governance import CallerIdentity, GovernancePolicy
 from app.core.ports import AuditPort, ExactSkillCoordinate, SkillRelationshipReadPort
-from app.core.skill_models import SkillRelationshipSelector, SkillVersionNotFoundError
+
+from .exact_read import ExactReadAuditInfo, enforce_and_audit_exact_read
+from .models import SkillRelationshipSelector, SkillVersionNotFoundError
 
 
 @dataclass(frozen=True, slots=True)

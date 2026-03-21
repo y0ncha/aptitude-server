@@ -7,7 +7,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.core.governance import TrustTier
-from app.core.skill_models import PublishIntent
+from app.core.skills.models import PublishIntent
 from app.interface.dto.skills_shared import (
     normalize_optional_text,
     normalize_required_text,

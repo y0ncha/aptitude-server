@@ -25,7 +25,8 @@ from app.core.ports import (
     SkillRegistryPersistenceError,
     SkillRegistryPort,
 )
-from app.core.skill_models import (
+
+from .models import (
     SHA256_ALGORITHM,
     CreateSkillVersionCommand,
     DuplicateSkillVersionError,
@@ -44,7 +45,7 @@ from app.core.skill_models import (
     SkillVersionNotFoundError,
     SkillVersionStatusUpdate,
 )
-from app.core.skill_version_projections import to_skill_version_detail
+from .projections import to_skill_version_detail
 
 __all__ = [
     "SHA256_ALGORITHM",

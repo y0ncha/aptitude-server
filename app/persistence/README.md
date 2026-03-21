@@ -34,5 +34,8 @@ Implements core persistence ports for:
 Adapters in this package implement protocols defined in `app.core.ports`.
 The repository owns atomic publish/status writes, including audit rows that must
 commit in the same transaction as authoritative lifecycle changes.
+Persistence adapters that need skill-domain errors or service-facing models
+should import them from `app.core.skills.*`, while preserving the same
+layering boundary against the rest of core.
 Canonical short summary text lives on `skill_metadata.description`; deduplicated
 `skill_contents` rows persist only markdown plus checksum and size metadata.

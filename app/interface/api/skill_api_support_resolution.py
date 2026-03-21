@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.core.skill_resolution import ResolvedSkillDependencies
+from app.core.skills.resolution import ResolvedSkillDependencies
 from app.interface.dto.skills_resolution import (
     DependencySelectorResponse,
     SkillDependencyResolutionResponse,

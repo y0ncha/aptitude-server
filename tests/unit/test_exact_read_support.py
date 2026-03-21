@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from app.core.exact_read_support import ExactReadAuditInfo, enforce_and_audit_exact_read
 from app.core.governance import (
     CallerIdentity,
     GovernancePolicy,
     PolicyViolation,
     build_default_policy_profile,
 )
+from app.core.skills.exact_read import ExactReadAuditInfo, enforce_and_audit_exact_read
 
 
 class FakeAuditRecorder:

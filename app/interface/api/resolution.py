@@ -8,7 +8,7 @@ from fastapi import APIRouter, Path, status
 from fastapi.responses import JSONResponse
 
 from app.core.dependencies import ReadCallerDep, SkillResolutionServiceDep
-from app.core.skill_models import SkillVersionNotFoundError
+from app.core.skills.models import SkillVersionNotFoundError
 from app.interface.api.errors import error_response
 from app.interface.api.response_docs import (
     ApiResponses,

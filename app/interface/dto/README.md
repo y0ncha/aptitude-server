@@ -23,6 +23,8 @@ resolution, exact immutable metadata fetch, and lifecycle-status APIs.
 
 - DTOs should mirror the public contract only; they should not preserve deleted
   route shapes.
+- DTOs that reuse core type aliases should import them from `app.core.skills.*`
+  when they belong to the skill-domain bounded context.
 - Publish body DTOs model only versioned content and metadata; the published
   skill `slug` is carried by the route path at `POST /skills/{slug}/versions`,
   and `intent` declares whether the caller is creating a new skill slug or

@@ -318,7 +318,7 @@ match through text or tags.
 
 - Request DTO and normalization: `app/interface/dto/skills.py`
 - Discovery route: `app/interface/api/discovery.py`
-- Discovery service facade: `app/core/skill_discovery.py`
+- Discovery service facade: `app/core/skills/discovery.py`
 - Shared search normalization and explanation helpers:
   `app/intelligence/search_ranking.py`
 - Governance filter resolution: `app/core/governance.py`

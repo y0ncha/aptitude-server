@@ -284,8 +284,8 @@ objects with `read`, `publish`, or `admin` scopes.
 ### Discovery Flow
 
 1. [`app/interface/api/discovery.py`](../../app/interface/api/discovery.py) validates the request DTO and requires a `read` caller.
-2. The route calls [`app/core/skill_discovery.py`](../../app/core/skill_discovery.py), which converts `{name, description, tags}` into a search query.
-3. Discovery reuses [`app/core/skill_search.py`](../../app/core/skill_search.py):
+2. The route calls [`app/core/skills/discovery.py`](../../app/core/skills/discovery.py), which converts `{name, description, tags}` into a search query.
+3. Discovery reuses [`app/core/skills/search.py`](../../app/core/skills/search.py):
    - normalizes text and tags
    - resolves lifecycle/trust-tier filters through [`app/core/governance.py`](../../app/core/governance.py)
    - records an audit event
@@ -305,7 +305,7 @@ only the ordered slug list.
 ### Resolution Flow
 
 1. [`app/interface/api/resolution.py`](../../app/interface/api/resolution.py) validates `slug` and `version` path params and requires `read`.
-2. [`app/core/skill_resolution.py`](../../app/core/skill_resolution.py) performs one exact lookup through the repository's relationship-read port.
+2. [`app/core/skills/resolution.py`](../../app/core/skills/resolution.py) performs one exact lookup through the repository's relationship-read port.
 3. The core service enforces exact-read governance for the stored lifecycle status and audits both allowed and denied exact reads.
 4. The response is built by filtering the stored relationship selectors down to
    `depends_on` only.
@@ -318,7 +318,7 @@ the next decision.
 ### Fetch Flow
 
 1. [`app/interface/api/fetch.py`](../../app/interface/api/fetch.py) validates `slug` and `version` path params and requires `read`.
-2. [`app/core/skill_fetch.py`](../../app/core/skill_fetch.py) performs one exact repository lookup for metadata or content.
+2. [`app/core/skills/fetch.py`](../../app/core/skills/fetch.py) performs one exact repository lookup for metadata or content.
 3. The core service checks exact-read governance on the stored lifecycle status and audits both allowed and denied exact reads.
 4. Missing coordinates raise `SKILL_VERSION_NOT_FOUND`.
 5. The route serializes:

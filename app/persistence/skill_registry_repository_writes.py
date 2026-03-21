@@ -13,7 +13,7 @@ from app.core.ports import (
     SkillRegistryPersistenceError,
     StoredSkillVersion,
 )
-from app.core.skill_registry import DuplicateSkillVersionError
+from app.core.skills.registry import DuplicateSkillVersionError
 from app.persistence.models.skill import Skill
 from app.persistence.models.skill_metadata import SkillMetadata
 from app.persistence.models.skill_relationship_selector import SkillRelationshipSelector

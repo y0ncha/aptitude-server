@@ -48,6 +48,8 @@ adapter layer between FastAPI and core services.
 
 Routers should stay thin. They validate HTTP input, call a core service, and
 translate results into public DTOs without embedding business policy.
+Routers that depend on the skill-domain core should import from
+`app.core.skills.*` rather than assuming a flat `app.core` module layout.
 `errors.py` owns the public error envelope so request validation failures,
 policy violations, and explicit API errors share one JSON shape.
 The `skill_api_support_*.py` modules are split by API surface so route handlers

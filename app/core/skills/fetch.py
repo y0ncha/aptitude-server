@@ -2,17 +2,18 @@
 
 from __future__ import annotations
 
-from app.core.exact_read_support import ExactReadAuditInfo, enforce_and_audit_exact_read
 from app.core.governance import CallerIdentity, GovernancePolicy
 from app.core.ports import AuditPort, SkillVersionReadPort
-from app.core.skill_models import (
+
+from .exact_read import ExactReadAuditInfo, enforce_and_audit_exact_read
+from .models import (
     SHA256_ALGORITHM,
     SkillChecksum,
     SkillContentDocument,
     SkillVersionDetail,
     SkillVersionNotFoundError,
 )
-from app.core.skill_version_projections import to_skill_version_detail
+from .projections import to_skill_version_detail
 
 
 class SkillFetchService:

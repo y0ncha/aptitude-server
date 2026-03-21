@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from app.core.governance import TrustTier
-from app.core.skill_models import (
+from app.core.skills.models import (
     ProvenanceMetadata,
     SkillChecksum,
     SkillMetadata,

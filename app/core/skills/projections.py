@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from app.core.ports import StoredSkillVersion
-from app.core.skill_models import (
+
+from .models import (
     SHA256_ALGORITHM,
     SkillChecksum,
     SkillContentSummary,

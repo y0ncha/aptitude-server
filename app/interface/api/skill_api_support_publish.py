@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.core.skill_models import (
+from app.core.skills.models import (
     CreateSkillVersionCommand,
     ProvenanceMetadata,
     SkillContentInput,

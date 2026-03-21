@@ -13,10 +13,10 @@ from app.core.dependencies import (
     get_skill_resolution_service,
 )
 from app.core.readiness import ReadinessService
-from app.core.skill_discovery import SkillDiscoveryService
-from app.core.skill_fetch import SkillFetchService
-from app.core.skill_registry import SkillRegistryService
-from app.core.skill_resolution import SkillResolutionService
+from app.core.skills.discovery import SkillDiscoveryService
+from app.core.skills.fetch import SkillFetchService
+from app.core.skills.registry import SkillRegistryService
+from app.core.skills.resolution import SkillResolutionService
 from app.service_container import ServiceContainer
 
 

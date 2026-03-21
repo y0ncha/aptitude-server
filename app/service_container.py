@@ -8,10 +8,10 @@ from app.audit.recorder import SQLAlchemyAuditRecorder
 from app.core.governance import GovernancePolicy
 from app.core.readiness import ReadinessService
 from app.core.settings import Settings
-from app.core.skill_discovery import SkillDiscoveryService
-from app.core.skill_fetch import SkillFetchService
-from app.core.skill_registry import SkillRegistryService
-from app.core.skill_resolution import SkillResolutionService
+from app.core.skills.discovery import SkillDiscoveryService
+from app.core.skills.fetch import SkillFetchService
+from app.core.skills.registry import SkillRegistryService
+from app.core.skills.resolution import SkillResolutionService
 from app.persistence.db import SQLAlchemyDatabaseReadinessProbe, get_session_factory, init_engine
 from app.persistence.skill_registry_repository import SQLAlchemySkillRegistryRepository
 

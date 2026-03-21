@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.core.skill_models import SkillVersionStatusUpdate
+from app.core.skills.models import SkillVersionStatusUpdate
 from app.interface.dto.skills_lifecycle import SkillVersionStatusResponse
 
 

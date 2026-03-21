@@ -12,7 +12,7 @@ from app.core.dependencies import (
     PublishCallerDep,
     SkillRegistryServiceDep,
 )
-from app.core.skill_registry import (
+from app.core.skills.registry import (
     DuplicateSkillVersionError,
     SkillAlreadyExistsError,
     SkillNotFoundError,
