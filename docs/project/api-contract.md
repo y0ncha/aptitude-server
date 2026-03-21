@@ -14,6 +14,7 @@ Public routes:
 
 - `GET /healthz`
 - `GET /readyz`
+- `GET /metrics`
 - `POST /skills/{slug}/versions`
 - `POST /discovery`
 - `GET /resolution/{slug}/{version}`
@@ -25,6 +26,7 @@ Public routes:
 
 This route set is the frozen public registry baseline for Plans 09-15.
 
+- `GET /metrics` is an operational endpoint for Prometheus-compatible scraping and does not widen the frozen registry-business route families.
 - Resolution remains a first-class public exact-read surface.
 - Exact fetch stays singular and coordinate-based through:
   - `GET /skills/{slug}/versions/{version}`
@@ -32,10 +34,12 @@ This route set is the frozen public registry baseline for Plans 09-15.
 - Later milestones may refine payload fields, headers, and policy behavior inside this route set, but they do not add sibling public read route families or compatibility aliases.
 - The server remains execution-agnostic: discovery returns candidate slugs, resolution returns direct authored `depends_on`, and exact fetch returns immutable metadata or markdown for one coordinate.
 
-## Auth And Errors
+## Auth, Headers, And Errors
 
-- `GET /healthz` and `GET /readyz` are unauthenticated.
+- `GET /healthz`, `GET /readyz`, and `GET /metrics` are unauthenticated.
 - All other routes require `Authorization: Bearer <token>`.
+- Clients may send `X-Request-ID` on any request.
+- The server echoes `X-Request-ID` on every response so logs, metrics, and audit rows can be stitched together operationally.
 - Required scopes:
   - `read`: discovery, resolution, fetch
   - `publish`: immutable publish
@@ -119,6 +123,7 @@ Discovery, resolution, and raw content reads do not depend on provenance.
 | --- | --- | --- | --- | --- |
 | `GET` | `/healthz` | none | `200` | Liveness probe |
 | `GET` | `/readyz` | none | `200` or `503` | Dependency readiness probe |
+| `GET` | `/metrics` | none | `200` | Prometheus-compatible operational metrics |
 | `POST` | `/skills/{slug}/versions` | `publish` | `201` | Publish one immutable `slug@version` |
 | `POST` | `/discovery` | `read` | `200` | Returns ordered candidate `slug` values only |
 | `GET` | `/resolution/{slug}/{version}` | `read` | `200` | Returns direct authored `depends_on` only |
@@ -211,6 +216,16 @@ Rules:
 - Missing coordinates return `404`.
 - The body is the raw stored markdown; metadata stays on the metadata route.
 - Read policy matches the metadata exact-read route.
+
+### `GET /metrics`
+
+Returns Prometheus-compatible text exposition for operational scraping.
+
+Rules:
+
+- Operational endpoint only; not part of the registry-business route families.
+- Unauthenticated in-app; protect exposure with deployment and network controls.
+- Includes bounded HTTP and registry-operation metrics plus readiness gauges.
 
 ### `POST /skills/{slug}/versions`
 

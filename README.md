@@ -36,6 +36,8 @@ In practice:
 The current codebase is registry-first and aligned with the PRD's core responsibilities:
 
 - FastAPI service with Swagger UI docs and PostgreSQL-backed persistence
+- Prometheus-compatible `/metrics` endpoint for operational scraping
+- Request-correlation via `X-Request-ID` across responses, JSON logs, and audit rows
 - Immutable publication of normalized `slug@version` records
 - Body-based discovery that returns ordered candidate slugs
 - Exact dependency reads for authored `depends_on` selectors only
@@ -167,8 +169,10 @@ export AUTH_TOKENS_JSON='{"reader-token":["read"],"publisher-token":["read","pub
 Optional settings:
 
 - `LOG_LEVEL` defaults to `INFO`
+- `LOG_FORMAT` defaults to `auto` and chooses pretty local console logs plus JSON in container/non-interactive environments
 - `ACTIVE_POLICY_PROFILE` defaults to `default`
 - `POLICY_PROFILES_JSON` can define additional policy profiles
+- callers may send `X-Request-ID`; the server always echoes it back
 
 ### Run migrations and start the API
 
@@ -188,6 +192,44 @@ make format
 make typecheck
 make migrate-down
 make db-down
+make observability-up
+make observability-down
+make docker-smoke
+```
+
+## Local Observability Stack
+
+For local validation with pinned Docker images, start the optional observability profile:
+
+```bash
+make observability-up
+```
+
+This brings up:
+
+- PostgreSQL
+- `aptitude-server`
+- Prometheus
+- Grafana
+
+Local URLs:
+
+- API: `http://127.0.0.1:8000`
+- Metrics: `http://127.0.0.1:8000/metrics`
+- Prometheus: `http://127.0.0.1:9090`
+- Grafana: `http://127.0.0.1:3000`
+
+Default Grafana credentials:
+
+- username: `admin`
+- password: `admin`
+
+The compose workflow keeps migrations explicit: `make observability-up` runs the one-shot `migrate` service before starting the app, instead of auto-running migrations inside the API container.
+
+To stop the local stack:
+
+```bash
+make observability-down
 ```
 
 ## Project References
@@ -197,3 +239,4 @@ make db-down
 - Storage decision: [`docs/storage-strategy.md`](docs/storage-strategy.md)
 - Product and architecture overview: [`docs/overview.md`](docs/overview.md)
 - API contract: [`docs/api-contract.md`](docs/project/api-contract.md)
+- Runbooks: [`docs/runbooks/README.md`](docs/runbooks/README.md)

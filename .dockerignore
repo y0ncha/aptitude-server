@@ -13,7 +13,6 @@
 .uv-cache/
 .venv/
 __pycache__/
-*.py[cod]
 docs/
 deployment/
 postman/

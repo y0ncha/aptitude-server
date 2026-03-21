@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -72,6 +73,7 @@ class Settings(BaseSettings):
     database_url: str = Field(alias="DATABASE_URL")
     app_env: str = Field(default="dev", alias="APP_ENV")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+    log_format: Literal["auto", "json", "pretty"] = Field(default="auto", alias="LOG_FORMAT")
     app_name: str = Field(default="aptitude-server", alias="APP_NAME")
     auth_tokens: dict[str, tuple[CallerScope, ...]] = Field(
         default_factory=dict,

@@ -44,6 +44,7 @@ def test_current_contract_docs_do_not_reintroduce_removed_public_read_routes(
 def test_api_contract_documents_the_frozen_public_read_surface() -> None:
     document = (REPO_ROOT / "docs/project/api-contract.md").read_text()
 
+    assert "GET /metrics" in document
     assert "POST /skills/{slug}/versions" in document
     assert "POST /skill-versions" not in document
     assert "create_skill" in document
@@ -53,6 +54,17 @@ def test_api_contract_documents_the_frozen_public_read_surface() -> None:
     assert "GET /skills/{slug}/versions/{version}/content" in document
     assert "Resolution remains a first-class public exact-read surface." in document
     assert "they do not add sibling public read route families or compatibility aliases" in document
+    assert "X-Request-ID" in document
+
+
+@pytest.mark.unit
+def test_readme_documents_operability_stack_and_metrics_contract() -> None:
+    document = (REPO_ROOT / "README.md").read_text()
+
+    assert "/metrics" in document
+    assert "X-Request-ID" in document
+    assert "Grafana" in document
+    assert "Prometheus" in document
 
 
 @pytest.mark.unit

@@ -1,0 +1,207 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "graphTooltip": 0,
+  "panels": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafana"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "sum(rate(aptitude_http_requests_total{route!=\"__unmatched__\"}[5m])) by (status_class)",
+          "legendFormat": "{{status_class}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Service Overview",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafana"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "sum(increase(aptitude_registry_operation_total{surface=\"publish\"}[15m])) by (outcome)",
+          "legendFormat": "publish {{outcome}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(increase(aptitude_registry_operation_total{surface=\"lifecycle\"}[15m])) by (outcome)",
+          "legendFormat": "lifecycle {{outcome}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Publish and Lifecycle Outcomes",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafana"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(aptitude_registry_operation_duration_seconds_bucket{surface=\"discovery\"}[5m])))",
+          "legendFormat": "discovery p95",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(aptitude_registry_operation_duration_seconds_bucket{surface=\"resolution\"}[5m])))",
+          "legendFormat": "resolution p95",
+          "refId": "B"
+        }
+      ],
+      "title": "Discovery and Resolution Latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafana"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(aptitude_registry_operation_duration_seconds_bucket{surface=\"metadata\"}[5m])))",
+          "legendFormat": "metadata p95",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(aptitude_registry_operation_duration_seconds_bucket{surface=\"content\"}[5m])))",
+          "legendFormat": "content p95",
+          "refId": "B"
+        }
+      ],
+      "title": "Metadata and Content Fetch Latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafana"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "sum(increase(aptitude_registry_operation_total{surface=\"publish\",outcome!=\"success\"}[15m]))",
+          "legendFormat": "publish failures",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(increase(aptitude_registry_operation_total{surface=\"lifecycle\",outcome!=\"success\"}[15m]))",
+          "legendFormat": "governance failures",
+          "refId": "B"
+        }
+      ],
+      "title": "Governance and Lifecycle Failures",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafana"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "id": 6,
+      "targets": [
+        {
+          "expr": "aptitude_readiness_status{dependency=\"database\"}",
+          "legendFormat": "database readiness",
+          "refId": "A"
+        }
+      ],
+      "title": "Dependency Readiness",
+      "type": "stat"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": [
+    "aptitude-server",
+    "publish",
+    "discovery",
+    "resolution",
+    "metadata",
+    "content",
+    "lifecycle"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "Aptitude Server Operability",
+  "version": 1
+}

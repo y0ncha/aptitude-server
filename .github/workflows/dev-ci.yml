@@ -70,3 +70,32 @@ jobs:
 
       - name: Run integration tests
         run: uv run --extra dev pytest tests/integration
+
+      - name: Validate Prometheus config and rules
+        run: |
+          docker run --rm \
+            -v "$PWD/ops/monitoring/prometheus:/etc/prometheus:ro" \
+            prom/prometheus:v3.5.1 \
+            promtool check config /etc/prometheus/prometheus.yml
+
+      - name: Validate observability compose profile
+        run: docker compose --profile observability config >/dev/null
+
+      - name: Build app image for smoke test
+        run: docker buildx build --load --platform linux/amd64 --tag y0ncha/aptitude-server:latest .
+
+      - name: Container smoke test
+        run: |
+          docker compose --profile observability up -d db
+          docker compose --profile observability run --rm migrate
+          docker compose --profile observability up -d app prometheus grafana
+          for attempt in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:8000/healthz >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          curl --fail http://127.0.0.1:8000/healthz
+          curl --fail http://127.0.0.1:8000/readyz
+          curl --fail http://127.0.0.1:8000/metrics
+          docker compose --profile observability down -v

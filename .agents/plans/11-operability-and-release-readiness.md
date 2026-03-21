@@ -7,6 +7,7 @@ Harden `aptitude-server` for repeatable deployment and reliable operation after 
 - Runtime: Python 3.12+
 - API and contracts: FastAPI + Pydantic v2
 - Data layer: SQLAlchemy 2.0 + Alembic
+- Observability foundation: Prometheus-compatible metrics and Grafana-consumable dashboards/rules kept optional at deployment time
 - Quality gates: pytest, ruff, mypy, coverage thresholds
 
 ## Scope
@@ -18,6 +19,10 @@ Harden `aptitude-server` for repeatable deployment and reliable operation after 
   - `GET /skills/{slug}/versions/{version}/content`
   - lifecycle and governance paths
 - Add metrics, dashboards, alerts, and SLO instrumentation for the final route set and PostgreSQL-only storage model.
+- Make the observability foundation Prometheus-friendly without making Prometheus or Grafana mandatory release dependencies:
+  - expose a scrape-friendly metrics endpoint for the finalized route set
+  - use stable metric names, bounded labels, and histogram buckets that support SLO and alert-rule composition
+  - define dashboards and alerts as code in a form Grafana can consume later, even if a Grafana deployment is not part of this milestone
 - Add Docker packaging, startup/run instructions, and CI quality gates.
 - Add runbooks for incidents on publish, discovery, resolution, exact metadata fetch, exact content fetch, lifecycle, and governance operations.
 - Keep operability work internal to instrumentation, packaging, and runbooks; do not add new public registry-business endpoints, debug routes, or alternate discovery/resolution/fetch variants.
@@ -26,12 +31,15 @@ Harden `aptitude-server` for repeatable deployment and reliable operation after 
 ## Architecture Impact
 - Adds deployment and observability infrastructure without reopening contract or storage decisions.
 - Makes the final registry behavior measurable and supportable.
+- Establishes a vendor-neutral observability contract that can plug into Prometheus/Grafana later without reworking core instrumentation.
 - Prevents hardening work from preserving removed routes indirectly through dashboards, alerts, or runbooks.
 
 ## Deliverables
 - Structured logging conventions and correlation ID propagation.
 - Metrics endpoint plus counters, timers, and error-rate tracking for final registry operations.
 - Dashboards and alerts for discovery, resolution, metadata fetch, content fetch, publish, and governance flows.
+- Prometheus-compatible metric naming, label, and bucket conventions suitable for later recording rules and alert rules.
+- Dashboard and alert definitions stored as code and shaped for later Grafana import/consumption, while remaining optional for this milestone's rollout.
 - Dockerfile and local/prod run instructions.
 - CI pipeline stages for unit, integration, lint, type-check, and coverage gates.
 - Operational runbooks aligned to the hard-cut public contract and PostgreSQL-only runtime architecture.
@@ -42,8 +50,10 @@ Harden `aptitude-server` for repeatable deployment and reliable operation after 
 - Containerized startup and migration flow work against the final service shape.
 - Discovery and immutable fetch SLO instrumentation align with the KPIs in `docs/prd.md`.
 - Resolution and exact content fetch reliability instrumentation exist for the final contract.
+- Metrics can be scraped by Prometheus-compatible collectors, and dashboard/alert artifacts are ready for optional Grafana adoption without changing application instrumentation.
 - Operability work does not add public business-endpoint variants to support diagnostics or release operations.
 - Runbooks and alerts assume PostgreSQL-only storage and never reference deleted route families or non-PostgreSQL artifact backends.
+- Release readiness does not require a production Grafana or Prometheus deployment, but the instrumentation and artifacts must make that adoption low-friction later.
 
 ## Test Plan
 - End-to-end integration test covering publish -> discovery -> resolution -> exact metadata fetch -> exact content fetch -> lifecycle update.
@@ -51,6 +61,7 @@ Harden `aptitude-server` for repeatable deployment and reliable operation after 
 - Audit/log correlation test for a complete registry request path.
 - Performance/load validation for discovery, resolution, and exact fetch on the finalized route set.
 - Alerting and metrics sanity test for publish failures, exact-read failures, resolution failures, and discovery latency regression.
+- Metrics exposition compatibility test validating scrapeability, stable label sets, and bucket coverage needed for Prometheus/Grafana-style alerting and dashboards.
 
 ## Plan 15 Follow-On Note (2026-03-19)
 - Release-readiness acceptance in this milestone is still based on the lexical
@@ -61,3 +72,6 @@ Harden `aptitude-server` for repeatable deployment and reliable operation after 
 - If Plan 15 is implemented later, its metrics, alerts, dashboards, and runbook
   additions should extend this observability foundation without changing the
   frozen public route set or reopening lexical-baseline release criteria.
+- If Prometheus/Grafana are adopted later, Plan 15 should reuse the metric and
+  dashboard contracts defined here instead of introducing a parallel
+  observability vocabulary.

@@ -4,7 +4,7 @@ DOCKER_TAG ?= latest
 DOCKER_IMAGE_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
 DOCKER_PLATFORMS ?= linux/amd64,linux/arm64
 
-.PHONY: run debug test lint format typecheck migrate-up migrate-down db-up db-down docker-build docker-push docker-build-push
+.PHONY: run debug test lint format typecheck migrate-up migrate-down db-up db-down docker-migrate observability-up observability-down docker-smoke docker-build docker-push docker-build-push
 
 run:
 	@printf "\033[1;36m==>\033[0m \033[1mStarting FastAPI dev server\033[0m\n"
@@ -44,6 +44,32 @@ db-up:
 
 db-down:
 	docker compose down -v
+
+docker-migrate:
+	docker compose --profile observability run --rm migrate
+
+observability-up:
+	docker compose --profile observability up -d db
+	docker compose --profile observability run --rm migrate
+	docker compose --profile observability up -d app prometheus grafana
+
+observability-down:
+	docker compose --profile observability down -v
+
+docker-smoke:
+	docker compose --profile observability up -d db
+	docker compose --profile observability run --rm migrate
+	docker compose --profile observability up -d app
+	@for attempt in $$(seq 1 30); do \
+		if curl --silent --fail http://127.0.0.1:8000/healthz >/dev/null 2>&1; then \
+			break; \
+		fi; \
+		sleep 1; \
+	done
+	curl --fail http://127.0.0.1:8000/healthz
+	curl --fail http://127.0.0.1:8000/readyz
+	curl --fail http://127.0.0.1:8000/metrics
+	docker compose --profile observability down -v
 
 docker-build:
 	docker buildx build --load -t $(DOCKER_IMAGE_REF) .

@@ -24,6 +24,7 @@ def test_run_dev_server_prints_banner_and_uses_centralized_logging(
 
     monkeypatch.setitem(sys.modules, "uvicorn", SimpleNamespace(run=fake_run))
     monkeypatch.setenv("LOG_LEVEL", "DEBUG")
+    monkeypatch.setenv("LOG_FORMAT", "pretty")
     monkeypatch.setenv("PORT", "9000")
     monkeypatch.setenv("UVICORN_RELOAD", "false")
 
@@ -36,5 +37,5 @@ def test_run_dev_server_prints_banner_and_uses_centralized_logging(
         "host": "127.0.0.1",
         "port": 9000,
         "reload": False,
-        "log_config": build_logging_config("DEBUG"),
+        "log_config": build_logging_config("DEBUG", log_format="pretty"),
     }

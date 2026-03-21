@@ -4,17 +4,22 @@ from __future__ import annotations
 
 import logging
 import os
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from time import perf_counter
 from typing import cast
+from uuid import uuid4
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
+from fastapi.routing import APIRoute
 from starlette.types import ExceptionHandler
 
 from app.audit.recorder import SQLAlchemyAuditRecorder
 from app.core.governance import GovernancePolicy, PolicyViolation
-from app.core.logging import build_logging_config, configure_logging
+from app.core.logging import build_logging_config, configure_logging, normalize_log_format
+from app.core.metrics import observe_http_request
+from app.core.observability import clear_request_context, set_request_context
 from app.core.readiness import ReadinessService
 from app.core.settings import get_settings, reset_settings_cache
 from app.core.skill_discovery import SkillDiscoveryService
@@ -30,6 +35,7 @@ from app.interface.api.errors import (
 )
 from app.interface.api.fetch import router as fetch_router
 from app.interface.api.health import router as health_router
+from app.interface.api.operability import router as operability_router
 from app.interface.api.resolution import router as resolution_router
 from app.interface.api.skills import router as skills_router
 from app.persistence.db import (
@@ -51,7 +57,11 @@ STARTUP_BANNER = r"""
 """
 
 # Configure logging before lifespan starts so startup logs are consistently formatted.
-configure_logging(os.getenv("LOG_LEVEL", "INFO"))
+configure_logging(
+    os.getenv("LOG_LEVEL", "INFO"),
+    log_format=normalize_log_format(os.getenv("LOG_FORMAT")),
+    app_env=os.getenv("APP_ENV", "dev"),
+)
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +82,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Initialize process-wide resources and tear them down on shutdown."""
     reset_settings_cache()
     settings = get_settings()
-    configure_logging(settings.log_level)
+    configure_logging(
+        settings.log_level,
+        log_format=settings.log_format,
+        app_env=settings.app_env,
+    )
     if settings.auth_tokens:
         logger.info("loaded %d auth token(s) from settings", len(settings.auth_tokens))
     else:
@@ -123,6 +137,55 @@ def create_app() -> FastAPI:
     app.state.readiness_service = ReadinessService(
         database_probe=SQLAlchemyDatabaseReadinessProbe(),
     )
+
+    @app.middleware("http")
+    async def observability_middleware(
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
+        request_id = request.headers.get("X-Request-ID") or str(uuid4())
+        started_at = perf_counter()
+        request.state.request_id = request_id
+        set_request_context(request_id=request_id, http_method=request.method)
+
+        try:
+            response = await call_next(request)
+        except Exception:
+            route = _route_template(request)
+            duration_seconds = perf_counter() - started_at
+            set_request_context(
+                http_route=route,
+                status_code=500,
+                duration_ms=round(duration_seconds * 1000, 3),
+            )
+            observe_http_request(
+                method=request.method,
+                route=route,
+                status_code=500,
+                duration_seconds=duration_seconds,
+            )
+            logger.exception("request failed", extra={"event_type": "request.failed"})
+            clear_request_context()
+            raise
+
+        route = _route_template(request)
+        duration_seconds = perf_counter() - started_at
+        set_request_context(
+            http_route=route,
+            status_code=response.status_code,
+            duration_ms=round(duration_seconds * 1000, 3),
+        )
+        observe_http_request(
+            method=request.method,
+            route=route,
+            status_code=response.status_code,
+            duration_seconds=duration_seconds,
+        )
+        response.headers.setdefault("X-Request-ID", request_id)
+        logger.info("request complete", extra={"event_type": "request.completed"})
+        clear_request_context()
+        return response
+
     app.add_exception_handler(
         RequestValidationError,
         cast(ExceptionHandler, cast(object, request_validation_exception_handler)),
@@ -136,6 +199,7 @@ def create_app() -> FastAPI:
         cast(ExceptionHandler, cast(object, policy_violation_exception_handler)),
     )
     app.include_router(health_router)
+    app.include_router(operability_router)
     app.include_router(discovery_router)
     app.include_router(resolution_router)
     app.include_router(fetch_router)
@@ -151,6 +215,7 @@ def run_dev_server() -> None:
     import uvicorn
 
     log_level = os.getenv("LOG_LEVEL", "INFO")
+    log_format = normalize_log_format(os.getenv("LOG_FORMAT"))
     print(STARTUP_BANNER)
     reload_enabled = os.getenv("UVICORN_RELOAD", "true").lower() in {
         "1",
@@ -163,9 +228,16 @@ def run_dev_server() -> None:
         host="127.0.0.1",
         port=int(os.getenv("PORT", "8000")),
         reload=reload_enabled,
-        log_config=build_logging_config(log_level),
+        log_config=build_logging_config(log_level, log_format=log_format),
     )
 
 
 if __name__ == "__main__":
     run_dev_server()
+
+
+def _route_template(request: Request) -> str:
+    route = request.scope.get("route")
+    if isinstance(route, APIRoute):
+        return route.path
+    return "__unmatched__"

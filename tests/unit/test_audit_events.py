@@ -11,6 +11,7 @@ from app.core.audit_events import (
     build_search_audit_event,
 )
 from app.core.governance import CallerIdentity, ProvenanceMetadata
+from app.core.observability import clear_request_context, set_request_context
 
 
 def _caller() -> CallerIdentity:
@@ -99,3 +100,23 @@ def test_search_audit_event_keeps_query_values_redacted() -> None:
     assert event.payload["surface"] == "discovery"
     assert event.payload["query_present"] is True
     assert event.payload["result_count"] == 2
+
+
+@pytest.mark.unit
+def test_audit_events_include_request_id_from_observability_context() -> None:
+    set_request_context(request_id="req-audit")
+    try:
+        event = build_publish_audit_event(
+            caller=_caller(),
+            slug="python.lint",
+            version="1.2.3",
+            trust_tier="internal",
+            provenance=None,
+            policy_profile="default",
+            outcome="allowed",
+        )
+    finally:
+        clear_request_context()
+
+    assert event.payload is not None
+    assert event.payload["request_id"] == "req-audit"

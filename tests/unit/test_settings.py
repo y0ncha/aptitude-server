@@ -20,6 +20,7 @@ def test_settings_load_valid_environment(monkeypatch: pytest.MonkeyPatch) -> Non
     )
     monkeypatch.setenv("APP_ENV", "test")
     monkeypatch.setenv("LOG_LEVEL", "DEBUG")
+    monkeypatch.setenv("LOG_FORMAT", "pretty")
     monkeypatch.setenv("APP_NAME", "aptitude-test")
 
     settings = Settings(_env_file=None)
@@ -28,6 +29,7 @@ def test_settings_load_valid_environment(monkeypatch: pytest.MonkeyPatch) -> Non
     assert settings.database_url.endswith("/aptitude")
     assert settings.app_env == "test"
     assert settings.log_level == "DEBUG"
+    assert settings.log_format == "pretty"
     assert settings.app_name == "aptitude-test"
     assert (
         settings.active_policy.discovery_default_statuses

@@ -6,6 +6,7 @@ import hashlib
 from typing import Any, Literal
 
 from app.core.governance import CallerIdentity, LifecycleStatus, ProvenanceMetadata, TrustTier
+from app.core.observability import get_request_context
 from app.core.ports import AuditEventRecord
 
 ExactReadSurface = Literal["resolution", "metadata", "content"]
@@ -171,12 +172,14 @@ def _base_payload(
     reason_code: str | None = None,
     provenance: ProvenanceMetadata | None = None,
 ) -> dict[str, Any]:
+    request_context = get_request_context()
     payload: dict[str, Any] = {
         "actor_token_fingerprint": _token_fingerprint(caller.token),
         "actor_scopes": sorted(caller.scopes),
         "policy_profile": policy_profile,
         "surface": surface,
         "outcome": outcome,
+        "request_id": request_context.request_id,
     }
     if slug is not None:
         payload["slug"] = slug
