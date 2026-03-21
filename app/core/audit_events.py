@@ -6,8 +6,8 @@ import hashlib
 from typing import Any, Literal
 
 from app.core.governance import CallerIdentity, LifecycleStatus, ProvenanceMetadata, TrustTier
-from app.core.observability import get_request_context
 from app.core.ports import AuditEventRecord
+from app.observability.context import get_request_context
 
 ExactReadSurface = Literal["resolution", "metadata", "content"]
 AuditOutcome = Literal["allowed", "denied"]

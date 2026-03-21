@@ -11,7 +11,7 @@ from app.core.audit_events import (
     build_search_audit_event,
 )
 from app.core.governance import CallerIdentity, ProvenanceMetadata
-from app.core.observability import clear_request_context, set_request_context
+from app.observability.context import clear_request_context, set_request_context
 
 
 def _caller() -> CallerIdentity:

@@ -1,4 +1,4 @@
-"""Core readiness service and domain models."""
+"""Runtime readiness service and domain models."""
 
 from __future__ import annotations
 

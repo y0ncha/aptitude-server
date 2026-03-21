@@ -22,8 +22,8 @@ Strict project rules and approval gates remain centralized in
 2. Server/Resolver boundary contract: [`docs/scope.md`](../docs/project/scope.md)
 3. Server product requirements: [`docs/prd.md`](../docs/prd.md)
 4. Strict repo rules: [`rules/repo.md`](rules/repo.md)
-5. Roadmap and sequencing: [`plans/roadmap.md`](plans/roadmap.md)
-6. Plan execution files: `plans/XX-*.md` (append-only milestones)
+5. Roadmap and sequencing: [`.agents/plans/roadmap.md`](plans/roadmap.md)
+6. Plan execution files: `.agents/plans/XX-*.md` (append-only milestones)
 7. Stable repo facts: [`memory/meta.md`](memory/meta.md)
 8. Skills:
    - [`skills/architect-review`](skills/architect-review) - system design and architecture best practices
@@ -62,8 +62,8 @@ Use these paths when gathering context and executing work.
 
 ### Planning and Memory Paths
 
-- `plans/roadmap.md`: sequencing and milestone order
-- `plans/XX-*.md`: active milestone plan files
+- `.agents/plans/roadmap.md`: sequencing and milestone order
+- `.agents/plans/XX-*.md`: active milestone plan files
 - `memory/meta.md`: stable project facts worth preserving across tasks
 
 ## Task-to-Doc Map
@@ -101,10 +101,10 @@ Use the smallest relevant set of docs for the task at hand.
 
 ## Planning and Execution
 
-- Work on one milestone plan file at a time under `plans/XX-*.md`.
+- Work on one milestone plan file at a time under `.agents/plans/XX-*.md`.
 - Do not start the next plan file before the current one meets its acceptance criteria.
 - Keep plan files append-only. Do not renumber or rename completed plans.
-- When updating a plan, harmonize `plans/roadmap.md` and all downstream `plans/XX-*.md` files so sequencing, scope, and acceptance criteria stay aligned.
+- When updating a plan, harmonize `.agents/plans/roadmap.md` and all downstream `.agents/plans/XX-*.md` files so sequencing, scope, and acceptance criteria stay aligned.
 - Every implementation PR should map to exactly one active plan file.
 - When finishing work on a plan, review older changelogs and prior implementation work for logic conflicts, redundancy, and code that should now be removed.
 
@@ -117,7 +117,7 @@ Use this flow for large or cross-cutting changes, not only for net-new features.
 3. Run `make lint`.
 4. Run `make typecheck`.
 5. Run `make test`.
-6. Update the active milestone documentation for the effort by appending plan notes in the corresponding file under `plans/`.
+6. Update the active milestone documentation for the effort by appending plan notes in the corresponding file under `.agents/plans/`.
 7. Write or update the matching milestone changelog using `$changelog-writer`.
 
 - Do not skip steps 3-7 for a large change unless the environment blocks them. If blocked, record the reason in the changelog or plan note.
@@ -135,8 +135,8 @@ Use this flow for large or cross-cutting changes, not only for net-new features.
 - Keep docs concise, concrete, and synced with behavior.
 - Before changing behavior, read the smallest relevant doc set from the task-to-doc map above.
 - Update these files when relevant behavior changes:
-  - `plans/plan-XX-*.md` for milestone scope or acceptance updates
-  - `plans/roadmap.md` for sequencing changes
+  - `.agents/plans/XX-*.md` for milestone scope or acceptance updates
+  - `.agents/plans/roadmap.md` for sequencing changes
   - `memory/meta.md` for stable product or server facts
 - For new APIs or payloads, document endpoint, request shape, response shape, and error cases.
 - Document deterministic rules explicitly, including ordering, tie-breakers, and policy precedence.

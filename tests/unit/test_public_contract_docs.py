@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -23,6 +24,12 @@ CURRENT_CONTRACT_DOCS = (
 )
 
 FROZEN_FUTURE_PLAN_DOCS = tuple(sorted((REPO_ROOT / ".agents/plans").glob("1[0-5]-*.md")))
+DOC_PORTABILITY_ROOTS = (
+    REPO_ROOT / "README.md",
+    REPO_ROOT / "docs",
+    REPO_ROOT / ".agents",
+)
+FORBIDDEN_INTERNAL_ROOT_LINK = re.compile(r"\]\(/(?:docs|\.agents)/")
 
 
 @pytest.mark.unit
@@ -73,3 +80,29 @@ def test_roadmap_freezes_the_public_read_route_families_for_later_plans() -> Non
 
     assert "Plans 09-15 keep the public route families fixed" in document
     assert "publish, discovery, resolution, exact metadata fetch, exact content fetch" in document
+
+
+@pytest.mark.unit
+def test_agent_contract_points_to_the_real_plan_directory() -> None:
+    document = (REPO_ROOT / ".agents/agent.md").read_text()
+
+    assert "`.agents/plans/roadmap.md`" in document
+    assert "`.agents/plans/XX-*.md`" in document
+    assert "under `.agents/plans/XX-*.md`" in document
+    assert "`plans/XX-*.md`" not in document
+
+
+@pytest.mark.unit
+def test_docs_and_agent_materials_use_portable_internal_links() -> None:
+    offending_paths: list[str] = []
+
+    for root in DOC_PORTABILITY_ROOTS:
+        paths = (root,) if root.is_file() else sorted(root.rglob("*.md"))
+        for path in paths:
+            document = path.read_text()
+            if "/Users/" in document or FORBIDDEN_INTERNAL_ROOT_LINK.search(document):
+                offending_paths.append(str(path.relative_to(REPO_ROOT)))
+
+    assert not offending_paths, "Non-portable internal documentation paths found:\n" + "\n".join(
+        offending_paths
+    )

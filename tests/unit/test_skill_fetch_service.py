@@ -13,8 +13,8 @@ from app.core.governance import (
     build_default_policy_profile,
 )
 from app.core.ports import StoredSkillVersion, StoredSkillVersionContent
-from app.core.skill_fetch import SkillFetchService
-from app.core.skill_models import SkillVersionNotFoundError
+from app.core.skills.fetch import SkillFetchService
+from app.core.skills.models import SkillVersionNotFoundError
 
 
 class FakeAuditRecorder:

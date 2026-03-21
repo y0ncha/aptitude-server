@@ -75,3 +75,30 @@ Harden `aptitude-server` for repeatable deployment and reliable operation after 
 - If Prometheus/Grafana are adopted later, Plan 15 should reuse the metric and
   dashboard contracts defined here instead of introducing a parallel
   observability vocabulary.
+
+## Plan 11 Loki Addendum (2026-03-21)
+- This milestone now explicitly includes Grafana Loki log tracking alongside
+  Prometheus-compatible metrics and Grafana-consumable dashboards/alerts.
+- Grafana remains the dashboard and query surface; Grafana Loki is the optional
+  log storage/query backend for structured application and audit-log tracking.
+- Loki adoption remains optional for release readiness. The application-side
+  contract is still structured logs, correlation IDs, audit trace stitching,
+  and bounded fields/labels that can be shipped into Grafana Loki later
+  without changing core logging behavior.
+- Scope is extended to define Loki-ready log schema, stream/label conventions,
+  and optional log-exploration assets for publish, discovery, resolution,
+  immutable metadata fetch, immutable content fetch, lifecycle, and governance
+  paths.
+- Deliverables now also include Grafana Loki ingestion/query conventions and
+  any optional provisioning artifacts needed to make local or later production
+  adoption low-friction without making Loki a mandatory runtime dependency.
+- Acceptance for this milestone now includes end-to-end registry logs carrying
+  stable correlation data and bounded structured fields suitable for Grafana
+  Loki queries, while still forbidding observability-only public business
+  endpoints.
+- Test planning now also includes log-shape validation for structured JSON
+  output, correlation propagation, bounded log labels/fields, and Grafana Loki
+  ingestion compatibility assumptions.
+- If Plan 15 is implemented later, its semantic-discovery observability should
+  reuse the log schema and Grafana Loki conventions introduced here instead of
+  creating a parallel logging vocabulary.

@@ -5,7 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.core.governance import CallerIdentity
-from app.core.skill_search import SkillSearchQuery, SkillSearchService
+
+from .search import SkillSearchQuery, SkillSearchService
 
 
 @dataclass(frozen=True, slots=True)

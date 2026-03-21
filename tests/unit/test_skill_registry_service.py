@@ -20,7 +20,7 @@ from app.core.ports import (
     StoredSkillVersion,
     StoredSkillVersionStatus,
 )
-from app.core.skill_registry import (
+from app.core.skills.registry import (
     CreateSkillVersionCommand,
     DuplicateSkillVersionError,
     SkillAlreadyExistsError,

@@ -5,8 +5,8 @@ This changelog documents implementation alignment for [.agents/plans/01-foundati
 ## Scope Delivered
 
 - FastAPI composition root and startup lifecycle are wired in [app/main.py](../../app/main.py), including settings, logging, DB engine bootstrap, readiness service registration, and router installation.
-- Health and readiness contracts are exposed from [app/interface/api/health.py](../../app/interface/api/health.py) using typed dependencies from [app/core/dependencies.py](../../app/core/dependencies.py) and readiness logic from [app/core/readiness.py](../../app/core/readiness.py).
-- Environment-driven configuration and shared logging are centralized in [app/core/settings.py](../../app/core/settings.py) and [app/core/logging.py](../../app/core/logging.py).
+- Health and readiness contracts are exposed from [app/interface/api/health.py](../../app/interface/api/health.py) using typed dependencies from [app/core/dependencies.py](../../app/core/dependencies.py) and readiness logic from [app/observability/readiness.py](../../app/observability/readiness.py).
+- Environment-driven configuration and shared logging are centralized in [app/core/settings.py](../../app/core/settings.py) and [app/observability/logging.py](../../app/observability/logging.py).
 - SQLAlchemy engine/session lifecycle and Alembic integration are established in [app/persistence/db.py](../../app/persistence/db.py), [alembic/env.py](../../alembic/env.py), and [alembic/versions/0001_baseline_audit_event.py](https://github.com/y0ncha/Aptitude/blob/ebe9db3c1ff7e8ce3f8ba300b70b8984c0547b5f/alembic/versions/0001_baseline_audit_event.py).
 - Developer entrypoints for run, test, lint, typecheck, and migrations are provided in [Makefile](../../Makefile).
 - Boundary guardrails are enforced by [tests/unit/test_layering_imports.py](../../tests/unit/test_layering_imports.py) and [tests/unit/test_registry_api_boundary.py](../../tests/unit/test_registry_api_boundary.py).
@@ -17,7 +17,7 @@ This changelog documents implementation alignment for [.agents/plans/01-foundati
 flowchart LR
     Client["Probe / Client"] --> API["FastAPI App<br/>app/main.py"]
     API --> Health["Health Router<br/>app/interface/api/health.py"]
-    Health --> Core["ReadinessService<br/>app/core/readiness.py"]
+    Health --> Core["ReadinessService<br/>app/observability/readiness.py"]
     Core --> Port["DatabaseReadinessPort"]
     Port --> Adapter["SQLAlchemyDatabaseReadinessProbe<br/>app/persistence/db.py"]
     Adapter --> DB["PostgreSQL"]
@@ -25,7 +25,7 @@ flowchart LR
 
 Why this shape:
 - Runtime wiring stays in one composition root so interface and core modules do not import persistence implementations directly. See [app/main.py](../../app/main.py) and [tests/unit/test_layering_imports.py](../../tests/unit/test_layering_imports.py).
-- Readiness is computed through a core port, which keeps probe logic testable and independent from FastAPI request handlers. See [app/core/readiness.py](../../app/core/readiness.py) and [app/persistence/db.py](../../app/persistence/db.py).
+- Readiness is computed through a core port, which keeps probe logic testable and independent from FastAPI request handlers. See [app/observability/readiness.py](../../app/observability/readiness.py) and [app/persistence/db.py](../../app/persistence/db.py).
 
 ## Runtime Flow
 

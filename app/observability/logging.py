@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from logging.config import dictConfig
 from typing import TYPE_CHECKING, Any, Literal
 
-from app.core.observability import get_request_context
+from app.observability.context import get_request_context
 
 if TYPE_CHECKING:
     from logging import LogRecord
@@ -136,7 +136,7 @@ def build_logging_config(
         "disable_existing_loggers": False,
         "filters": {
             "observability": {
-                "()": "app.core.logging.ObservabilityContextFilter",
+                "()": "app.observability.logging.ObservabilityContextFilter",
             },
         },
         "formatters": {
@@ -272,8 +272,8 @@ def _formatter_path(
         interactive=interactive,
     )
     if resolved_format == "pretty":
-        return "app.core.logging.PrettyLogFormatter"
-    return "app.core.logging.JsonLogFormatter"
+        return "app.observability.logging.PrettyLogFormatter"
+    return "app.observability.logging.JsonLogFormatter"
 
 
 def _resolve_log_format(

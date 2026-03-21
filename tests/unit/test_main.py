@@ -7,8 +7,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.core.logging import build_logging_config
 from app.main import STARTUP_BANNER, run_dev_server
+from app.observability.logging import build_logging_config
 
 
 @pytest.mark.unit
