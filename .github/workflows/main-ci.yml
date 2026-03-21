@@ -16,21 +16,6 @@ jobs:
     name: Master Main Gate
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_DB: aptitude
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d aptitude"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-
     env:
       TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/aptitude
       DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/aptitude
@@ -81,6 +66,17 @@ jobs:
 
       - name: Validate observability compose profile
         run: docker compose --profile observability config >/dev/null
+
+      - name: Start compose database
+        run: |
+          docker compose up -d db
+          for attempt in $(seq 1 30); do
+            if docker compose exec -T db pg_isready -U postgres -d aptitude >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          docker compose exec -T db pg_isready -U postgres -d aptitude
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -134,4 +130,7 @@ jobs:
           done
           END=$(python3 -c 'import time; print(time.time_ns())')
           curl --silent --get --data-urlencode 'query={service_name="aptitude-server"} |= "loki-smoke"' --data-urlencode "start=${START}" --data-urlencode "end=${END}" --data-urlencode 'limit=20' http://127.0.0.1:3100/loki/api/v1/query_range | python3 -c 'import json, sys; data = json.load(sys.stdin); matches = [(ts, line) for stream in data["data"]["result"] for ts, line in stream["values"]]; print(matches[0][1]) if matches else sys.exit("No Loki records matched loki-smoke")'
-          docker compose --profile observability down -v
+
+      - name: Tear down compose services
+        if: always()
+        run: docker compose --profile observability down -v
