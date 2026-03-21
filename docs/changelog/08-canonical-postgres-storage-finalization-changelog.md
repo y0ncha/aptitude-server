@@ -82,3 +82,8 @@ Source: [alembic/versions/0001_initial_schema.py](../../alembic/versions/0001_in
 - Local verification commands:
   - `uv run pytest tests/unit/test_registry_api_boundary.py tests/unit/test_skill_fetch_service.py tests/unit/test_skill_registry_service.py tests/unit/test_skill_version_projections.py tests/integration/test_migrations.py tests/integration/test_skill_registry_endpoints.py`
   - `uv run ruff check app tests alembic`
+
+## Addendum (2026-03-21)
+
+- References in the original milestone text to the legacy publish route name `POST /skill-versions` are historical only.
+- The live publish route is `POST /skills/{slug}/versions`, and the live frozen contract is documented in [docs/project/api-contract.md](../project/api-contract.md) and [Plan 09](../../.agents/plans/09-public-api-simplification-and-contract-freeze.md).

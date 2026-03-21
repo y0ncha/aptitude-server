@@ -2,6 +2,9 @@
 
 Core domain logic and cross-layer contracts.
 
+Use [docs/project/scope.md](../../docs/project/scope.md) for the canonical
+server-vs-resolver boundary.
+
 ## Purpose
 
 Defines business behavior for immutable skill catalog operations and the ports

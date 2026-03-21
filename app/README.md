@@ -2,6 +2,9 @@
 
 Application package for the aptitude-server service.
 
+For the repo-wide docs map, use [docs/README.md](../docs/README.md). For the
+canonical HTTP contract, use [docs/project/api-contract.md](../docs/project/api-contract.md).
+
 ## Purpose
 
 `app/` contains the runtime composition root, domain/core services, interface layer,

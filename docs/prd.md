@@ -1,5 +1,9 @@
 # Aptitude Server PRD
 
+> Status: current product requirements for `aptitude-server`.
+> Use [docs/project/api-contract.md](project/api-contract.md) for the canonical
+> HTTP contract and [docs/README.md](README.md) for the full docs map.
+
 ## 1. Executive Summary
 
 - **Problem Statement**: Platform teams need a governed registry for publishing, discovering, and retrieving skills, but the server becomes harder to scale, cache, and reason about when it also owns prompt interpretation, dependency solving, or runtime planning. The registry must stay focused on fast data-local operations over immutable artifacts and searchable metadata.

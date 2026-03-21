@@ -2,6 +2,9 @@
 
 HTTP API routers for the service.
 
+Use [docs/project/api-contract.md](../../../docs/project/api-contract.md) as the
+canonical HTTP contract for route semantics.
+
 ## Purpose
 
 Defines FastAPI routes, request validation, response schemas, and error

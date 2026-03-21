@@ -1,5 +1,9 @@
 # Storage Strategy for Skill Content
 
+> Status: current storage decision record for the live server baseline.
+> Use [docs/schema.md](schema.md) for the implemented schema shape and
+> [docs/README.md](README.md) for the full docs map.
+
 ## Purpose
 
 Evaluate storage strategies for skill artifacts in `aptitude-server` and recommend a design based on the current workload:

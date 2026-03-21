@@ -1,5 +1,8 @@
 # API Contract
 
+> Status: canonical public HTTP contract for `aptitude-server`.
+> For the broader docs map, use [docs/README.md](../README.md).
+
 Human-readable summary of the public HTTP API implemented by `aptitude-server`.
 For interactive local API docs, use `http://127.0.0.1:8000/docs`.
 

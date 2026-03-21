@@ -1,9 +1,13 @@
 # Aptitude Scope: Server vs Client
 
+> Status: canonical boundary doc for `aptitude-server` versus the resolver/client.
+> Use [docs/project/api-contract.md](api-contract.md) for the live HTTP contract
+> and [docs/README.md](../README.md) for the full docs map.
+
 ## Purpose
 
 This document defines the hard boundary between `aptitude-server` and the
-client-side `aptitude-client`.
+resolver/client side of Aptitude.
 
 The boundary exists for two reasons:
 
@@ -14,7 +18,7 @@ The boundary exists for two reasons:
 In short:
 
 - `aptitude-server` is the registry and retrieval system.
-- `aptitude-client` is the client-side decision and execution-planning system.
+- `aptitude-resolver` is the client-side decision and execution-planning system.
 
 ## Architectural Rule
 
@@ -35,7 +39,7 @@ execution planning.
 ## Ecosystem Analogy
 
 - `aptitude-server` = package registry / catalog service (PyPI, npm registry, Maven repository role).
-- `aptitude-client` = package manager / client runtime (pip, npm client, Maven client role).
+- `aptitude-resolver` = package manager / client runtime (pip, npm client, Maven client role).
 
 The registry stores immutable packages and searchable metadata.
 The client decides what to use and how to compose it.
@@ -67,7 +71,7 @@ primitives. The server does not perform the agent's reasoning or final choice.
 
 ## Ownership Matrix
 
-| Capability | Server Owner | client Owner | Notes                                                              |
+| Capability | Server Owner | Resolver / Client Owner | Notes |
 | --- | --- |--------------|--------------------------------------------------------------------|
 | Immutable artifact storage | Yes | No           | Registry source of truth                                           |
 | Publish validation and provenance enforcement | Yes | No           | Includes integrity, schema, trust, lifecycle checks                |
@@ -95,9 +99,9 @@ primitives. The server does not perform the agent's reasoning or final choice.
 ### Discovery Flow for Fast Agentic Search
 
 1. User or agent submits a prompt to the client.
-2. client extracts search intent into:
+2. resolver/client extracts search intent into:
    `name`, optional `description`, and optional `tags`.
-3. client calls the registry discovery API.
+3. resolver/client calls the registry discovery API.
 4. Server executes indexed retrieval over:
    - name
    - description
@@ -105,16 +109,16 @@ primitives. The server does not perform the agent's reasoning or final choice.
    - structured metadata
    - lifecycle and trust filters
 5. Server returns ordered candidate slugs only.
-6. client reranks or prunes that candidate set using runtime context.
-7. client fetches exact metadata, content, and dependency details for chosen candidates.
-8. client performs dependency expansion, conflict handling, and lock generation locally.
+6. resolver/client reranks or prunes that candidate set using runtime context.
+7. resolver/client fetches exact metadata, content, and dependency details for chosen candidates.
+8. resolver/client performs dependency expansion, conflict handling, and lock generation locally.
 
 ### Exact Fetch and Execution Flow
 
-1. client selects concrete `(slug, version)` coordinates.
-2. client fetches immutable metadata and markdown content from the server as needed.
-3. client verifies checksums, expands dependencies, and builds a lock.
-4. client produces the execution plan and trace output.
+1. resolver/client selects concrete `(slug, version)` coordinates.
+2. resolver/client fetches immutable metadata and markdown content from the server as needed.
+3. resolver/client verifies checksums, expands dependencies, and builds a lock.
+4. resolver/client produces the execution plan and trace output.
 
 ## What the Server Must Do
 
@@ -137,7 +141,7 @@ primitives. The server does not perform the agent's reasoning or final choice.
 - Own lock generation, plugin execution, runtime scoring, or execution planning.
 - Require clients to understand server internals, tables, or storage layout.
 
-## What the client/Client Must Do
+## What the Resolver / Client Must Do
 
 - Own the main user entrypoint: MCP, CLI, SDK, or agent runtime.
 - Interpret prompts and convert them into structured search requests.
@@ -148,7 +152,7 @@ primitives. The server does not perform the agent's reasoning or final choice.
 - Generate deterministic lock output with traceable decision records.
 - Execute or hand off an execution plan outside the registry.
 
-## What the client/Client Must Not Do
+## What the Resolver / Client Must Not Do
 
 - Read or write server databases directly.
 - Rebuild the full catalog by crawling every manifest for routine discovery.
@@ -228,14 +232,14 @@ The client output should include:
 
 ## Boundary Rules (Hard)
 
-- client cannot read or write server DB tables or private services directly.
+- Resolver/client cannot read or write server DB tables or private services directly.
 - Server cannot be the source of truth for runtime dependency resolution outcomes.
 - Search retrieval on metadata and descriptions belongs to the server.
-- Prompt interpretation, reranking, and final selection belong to the client.
-- Server ranking is advisory; client choice is authoritative.
-- Reproducibility is lock-based: production executions must use client lock output.
-- Any client policy or scoring that changes selected versions must be explicit
-  and recorded in client trace output.
+- Prompt interpretation, reranking, and final selection belong to the resolver/client.
+- Server ranking is advisory; resolver/client choice is authoritative.
+- Reproducibility is lock-based: production executions must use resolver/client lock output.
+- Any resolver/client policy or scoring that changes selected versions must be explicit
+  and recorded in resolver/client trace output.
 - Denormalized search indexes and read models are allowed on the server, but
   they must remain derived data, not canonical resolution state.
 
@@ -254,5 +258,5 @@ The client output should include:
 - Initial target scale: up to 10k skills and up to 200 nodes in resolved lock sets.
 - Search p95 should stay low enough that agent workflows can use registry search
   as an interactive primitive rather than a batch job.
-- client plugin budget target: <= 150 ms median overhead per plugin.
-- client versions are pinned per environment to control drift.
+- resolver/client plugin budget target: <= 150 ms median overhead per plugin.
+- resolver/client versions are pinned per environment to control drift.

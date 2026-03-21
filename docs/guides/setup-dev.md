@@ -1,5 +1,8 @@
 # Developer Setup
 
+> This is the canonical local setup guide. The root `README.md` only keeps the
+> condensed entrypoint and links back here for the full workflow.
+
 This guide shows the simplest way to run `aptitude-server` locally for development.
 
 ## Prerequisites

@@ -1,5 +1,9 @@
 # Aptitude Overview
 
+> Status: current product framing for `aptitude-server`.
+> Use [docs/project/api-contract.md](project/api-contract.md) for the canonical
+> HTTP contract and [docs/README.md](README.md) for the full docs map.
+
 Aptitude is a versioned, dependency-aware skill ecosystem for AI systems.
 
 - `aptitude-server` is a registry service for immutable artifacts and metadata.

@@ -2,6 +2,10 @@
 
 Persistence adapters and storage infrastructure.
 
+Use [docs/schema.md](../../docs/schema.md) and
+[docs/storage-strategy.md](../../docs/storage-strategy.md) as the canonical
+persistence references.
+
 ## Purpose
 
 Implements core persistence ports for:

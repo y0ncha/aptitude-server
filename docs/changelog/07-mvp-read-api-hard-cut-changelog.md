@@ -132,3 +132,8 @@ This milestone does not add a new schema migration. The tables below are the exi
 - Dependency-only exact-read behavior is covered in [tests/unit/test_skill_resolution_service.py](../../tests/unit/test_skill_resolution_service.py), including the `404` path for unknown coordinates.
 - End-to-end coverage lives in [tests/integration/test_skill_registry_endpoints.py](../../tests/integration/test_skill_registry_endpoints.py) for publish -> discovery -> resolution -> metadata batch fetch -> content batch fetch, ordered `found | not_found` semantics, multipart headers and body content, and `403` policy failures for forbidden exact reads.
 - Integration execution still depends on a reachable PostgreSQL database through [tests/conftest.py](../../tests/conftest.py), so the contract has both database-backed integration coverage and database-free unit coverage.
+
+## Addendum (2026-03-21)
+
+- This changelog already carries a historical-note warning near the top. For clarity, that warning also applies to the legacy publish route name `POST /skill-versions` wherever it appears in the original milestone text or diagrams.
+- The live contract baseline is the frozen route set documented in [docs/project/api-contract.md](../project/api-contract.md) and [Plan 09](../../.agents/plans/09-public-api-simplification-and-contract-freeze.md).

@@ -1,5 +1,10 @@
 # Aptitude: High Level Design
 
+> Status: project-level context document, not the canonical `aptitude-server`
+> contract.
+> Use [docs/README.md](../README.md), [docs/project/api-contract.md](api-contract.md),
+> and [docs/project/scope.md](scope.md) as the live server sources of truth.
+
 **Team:** Aptitude
 
 **Members:** Ela Shaul, Aviel Adika, Yonatan Csasnik

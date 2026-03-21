@@ -158,3 +158,8 @@ Sources: [alembic/versions/0004_metadata_search_ranking.py](https://github.com/y
 - Pure helper behavior is covered by [tests/unit/test_migration_0005.py](https://github.com/y0ncha/Aptitude/blob/57799f7b92feccbe6fa882060d16cf7d83a56e53/tests/unit/test_migration_0005.py), [tests/unit/test_search_ranking.py](../../tests/unit/test_search_ranking.py), [tests/unit/test_skill_registry_repository.py](../../tests/unit/test_skill_registry_repository.py), [tests/unit/test_skill_registry_service.py](../../tests/unit/test_skill_registry_service.py), and [tests/unit/test_skill_relationship_service.py](https://github.com/y0ncha/Aptitude/blob/86f334779619032d8c1eb6fd8d08221badcc6394/tests/unit/test_skill_relationship_service.py).
 - Contract drift is covered by [tests/unit/test_registry_api_boundary.py](../../tests/unit/test_registry_api_boundary.py) and [tests/unit/test_api_contract_examples.py](../../tests/unit/test_api_contract_examples.py), which keep the router surface and example payloads aligned.
 - Integration checks still require a reachable PostgreSQL database through [tests/conftest.py](../../tests/conftest.py). This changelog update did not add a database-free end-to-end harness.
+
+## Addendum (2026-03-21)
+
+- Legacy route names in this changelog are preserved as historical delivery context only. That includes `POST /skill-versions`, `GET /skills/{slug}`, `GET /skills/{slug}/versions`, `GET /discovery/skills/search`, and `POST /resolution/relationships:batch`.
+- The live public contract is the frozen route set documented in [docs/project/api-contract.md](../project/api-contract.md) and [Plan 09](../../.agents/plans/09-public-api-simplification-and-contract-freeze.md).
