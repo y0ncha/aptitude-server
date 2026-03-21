@@ -147,6 +147,7 @@ def build_logging_config(
             "()": formatter_name,
         },
     }
+    structured_handler_names = list(handler_names)
     if log_file_path is not None:
         handler_names.append("file")
         handlers["file"] = {
@@ -159,6 +160,7 @@ def build_logging_config(
         formatters["json"] = {
             "()": "app.observability.logging.JsonLogFormatter",
         }
+        structured_handler_names = list(handler_names)
     return {
         "version": 1,
         "disable_existing_loggers": False,
@@ -190,32 +192,32 @@ def build_logging_config(
                 "propagate": False,
             },
             "uvicorn.access": {
-                "handlers": handler_names,
+                "handlers": ["default"],
                 "level": resolved_level,
                 "propagate": False,
             },
             "fastapi": {
-                "handlers": handler_names,
+                "handlers": structured_handler_names,
                 "level": resolved_level,
                 "propagate": False,
             },
             "watchfiles": {
-                "handlers": handler_names,
+                "handlers": structured_handler_names,
                 "level": noisy_library_level,
                 "propagate": False,
             },
             "watchfiles.main": {
-                "handlers": handler_names,
+                "handlers": structured_handler_names,
                 "level": noisy_library_level,
                 "propagate": False,
             },
             "sqlalchemy": {
-                "handlers": handler_names,
+                "handlers": structured_handler_names,
                 "level": noisy_library_level,
                 "propagate": False,
             },
             "psycopg": {
-                "handlers": handler_names,
+                "handlers": structured_handler_names,
                 "level": noisy_library_level,
                 "propagate": False,
             },

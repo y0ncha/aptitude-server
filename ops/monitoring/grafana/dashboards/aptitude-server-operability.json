@@ -40,7 +40,7 @@
           "refId": "A"
         }
       ],
-      "title": "Service Overview",
+      "title": "HTTP Request Rate by Status Class",
       "type": "timeseries"
     },
     {
@@ -61,17 +61,12 @@
       "id": 2,
       "targets": [
         {
-          "expr": "sum(increase(aptitude_registry_operation_total{surface=\"publish\"}[15m])) by (outcome)",
-          "legendFormat": "publish {{outcome}}",
+          "expr": "sum(increase(aptitude_http_requests_total{route!=\"__unmatched__\"}[15m])) by (route)",
+          "legendFormat": "{{route}}",
           "refId": "A"
-        },
-        {
-          "expr": "sum(increase(aptitude_registry_operation_total{surface=\"lifecycle\"}[15m])) by (outcome)",
-          "legendFormat": "lifecycle {{outcome}}",
-          "refId": "B"
         }
       ],
-      "title": "Publish and Lifecycle Outcomes",
+      "title": "Baseline Route Volume (15m)",
       "type": "timeseries"
     },
     {
@@ -92,17 +87,12 @@
       "id": 3,
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(aptitude_registry_operation_duration_seconds_bucket{surface=\"discovery\"}[5m])))",
-          "legendFormat": "discovery p95",
+          "expr": "histogram_quantile(0.95, sum by (le, route) (rate(aptitude_http_request_duration_seconds_bucket{route!=\"__unmatched__\"}[5m])))",
+          "legendFormat": "{{route}} p95",
           "refId": "A"
-        },
-        {
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(aptitude_registry_operation_duration_seconds_bucket{surface=\"resolution\"}[5m])))",
-          "legendFormat": "resolution p95",
-          "refId": "B"
         }
       ],
-      "title": "Discovery and Resolution Latency",
+      "title": "Baseline Route Latency (p95)",
       "type": "timeseries"
     },
     {
@@ -123,17 +113,17 @@
       "id": 4,
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(aptitude_registry_operation_duration_seconds_bucket{surface=\"metadata\"}[5m])))",
-          "legendFormat": "metadata p95",
+          "expr": "sum(increase(aptitude_registry_operation_total{surface=\"publish\"}[15m])) by (outcome)",
+          "legendFormat": "publish {{outcome}}",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(aptitude_registry_operation_duration_seconds_bucket{surface=\"content\"}[5m])))",
-          "legendFormat": "content p95",
+          "expr": "sum(increase(aptitude_registry_operation_total{surface=\"lifecycle\"}[15m])) by (outcome)",
+          "legendFormat": "lifecycle {{outcome}}",
           "refId": "B"
         }
       ],
-      "title": "Metadata and Content Fetch Latency",
+      "title": "Publish and Lifecycle Outcomes (exercise write routes)",
       "type": "timeseries"
     },
     {
@@ -154,17 +144,17 @@
       "id": 5,
       "targets": [
         {
-          "expr": "sum(increase(aptitude_registry_operation_total{surface=\"publish\",outcome!=\"success\"}[15m]))",
-          "legendFormat": "publish failures",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(aptitude_registry_operation_duration_seconds_bucket{surface=\"discovery\"}[5m])))",
+          "legendFormat": "discovery p95",
           "refId": "A"
         },
         {
-          "expr": "sum(increase(aptitude_registry_operation_total{surface=\"lifecycle\",outcome!=\"success\"}[15m]))",
-          "legendFormat": "governance failures",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(aptitude_registry_operation_duration_seconds_bucket{surface=\"resolution\"}[5m])))",
+          "legendFormat": "resolution p95",
           "refId": "B"
         }
       ],
-      "title": "Governance and Lifecycle Failures",
+      "title": "Discovery and Resolution Latency (exercise discovery/resolution routes)",
       "type": "timeseries"
     },
     {
@@ -183,6 +173,68 @@
         "y": 16
       },
       "id": 6,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(aptitude_registry_operation_duration_seconds_bucket{surface=\"metadata\"}[5m])))",
+          "legendFormat": "metadata p95",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(aptitude_registry_operation_duration_seconds_bucket{surface=\"content\"}[5m])))",
+          "legendFormat": "content p95",
+          "refId": "B"
+        }
+      ],
+      "title": "Metadata and Content Fetch Latency (exercise exact fetch routes)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "id": 7,
+      "targets": [
+        {
+          "expr": "sum(increase(aptitude_registry_operation_total{surface=\"publish\",outcome!=\"success\"}[15m]))",
+          "legendFormat": "publish failures",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(increase(aptitude_registry_operation_total{surface=\"lifecycle\",outcome!=\"success\"}[15m]))",
+          "legendFormat": "governance failures",
+          "refId": "B"
+        }
+      ],
+      "title": "Governance and Lifecycle Failures (exercise write routes)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "id": 8,
       "targets": [
         {
           "expr": "aptitude_readiness_status{dependency=\"database\"}",

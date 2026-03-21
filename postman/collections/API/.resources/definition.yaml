@@ -6,21 +6,20 @@ $kind: collection
 
 name: API
 description: >-
-  Collection for validating the current Aptitude Skills API.
+  Source-of-truth Postman collection for manual QA of the current Aptitude
+  Skills API.
 
-    - Sanity: covers authenticated publish, lifecycle updates, exact fetch, discovery, and resolution
-    - Negative: covers authenticated validation, duplicate, exact-fetch errors, and resolution errors
+    - Sanity: covers health, readiness, metrics, authenticated publish, lifecycle
+      updates, exact fetch, discovery, and resolution
+    - Negative: covers authenticated validation, duplicate, and exact-read path
+      errors
 
   Note: `/readyz` exposes a 503 branch only when the runtime is unhealthy, so
-  the collection
-
-  asserts the healthy `200 ready` path by default.
-
+  the collection asserts the healthy `200 ready` path by default.
 
   All business endpoints require `Authorization: Bearer <token>`. The default
-  token variables
-
-  match the local development `AUTH_TOKENS_JSON` example from the README.
+  token variables match the local development `AUTH_TOKENS_JSON` example from
+  the README.
 
 variables:
   baseUrl: http://localhost:8000

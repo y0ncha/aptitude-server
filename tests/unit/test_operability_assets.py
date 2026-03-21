@@ -48,6 +48,8 @@ def test_grafana_dashboard_covers_key_registry_surfaces() -> None:
     )
 
     metrics_document = metrics_dashboard.read_text()
+    assert "aptitude_http_requests_total" in metrics_document
+    assert "aptitude_http_request_duration_seconds" in metrics_document
     assert "publish" in metrics_document
     assert "discovery" in metrics_document
     assert "resolution" in metrics_document
@@ -62,6 +64,9 @@ def test_grafana_dashboard_covers_key_registry_surfaces() -> None:
     assert "event_type" in logs_document
     assert "service_name" in logs_document
     assert "aptitude-server" in logs_document
+    assert "line_format" in logs_document
+    assert "http_route" in logs_document
+    assert "duration_ms" in logs_document
 
 
 @pytest.mark.unit
@@ -94,3 +99,4 @@ def test_observability_compose_profile_uses_single_otel_lgtm_container() -> None
     assert "grafana/otel-lgtm" in document
     assert "otelcol-config.yaml" in document
     assert "aptitude-observability" in document
+    assert "http://127.0.0.1:8000/readyz" in document

@@ -19,8 +19,9 @@ scripts:
 
       pm.test('Healthz payload matches contract', () => {
         const json = pm.response.json();
+        pm.expect(json.status).to.eql('ok');
         pm.expect(json.service).to.be.a('string').and.not.empty;
         pm.expect(json.environment).to.be.a('string').and.not.empty;
       });
 
-      pm.execution.setNextRequest(pm.response.code === 200 ? 'Readyz' : null);
+      pm.execution.setNextRequest(pm.response.code === 200 ? 'Metrics' : null);

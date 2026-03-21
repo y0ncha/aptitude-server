@@ -129,6 +129,7 @@ def test_build_logging_config_adds_json_file_handler_when_log_file_path_is_set()
     assert config["root"]["handlers"] == ["default", "file"]
     assert config["loggers"]["app"]["handlers"] == ["default", "file"]
     assert config["loggers"]["uvicorn.error"]["handlers"] == ["default", "file"]
+    assert config["loggers"]["uvicorn.access"]["handlers"] == ["default"]
 
 
 @pytest.mark.unit
@@ -227,6 +228,24 @@ def test_configured_logger_writes_json_to_file_handler(
     assert payload["request_id"] == "req-file"
     assert payload["http_route"] == "/healthz"
     assert payload["event_type"] == "request.completed"
+
+
+@pytest.mark.unit
+def test_uvicorn_access_logger_does_not_write_to_file_handler(
+    tmp_path: Path,
+) -> None:
+    log_file_path = tmp_path / "app.jsonl"
+    configure_logging(
+        "INFO",
+        log_format="pretty",
+        app_env="dev",
+        interactive=True,
+        log_file_path=str(log_file_path),
+    )
+
+    logging.getLogger("uvicorn.access").info('127.0.0.1:12345 - "GET /healthz HTTP/1.1" 200')
+
+    assert not log_file_path.exists() or log_file_path.read_text() == ""
 
 
 @pytest.mark.unit

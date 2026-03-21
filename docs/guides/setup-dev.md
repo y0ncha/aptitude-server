@@ -127,3 +127,71 @@ curl -H 'X-Request-ID: setup-dev-loki-check' http://127.0.0.1:8000/healthz
 ```
 
 Then open Grafana and search for `setup-dev-loki-check` in the `Aptitude Server Logs` dashboard. That exercises the full local path from the API's JSON file sink through the embedded OpenTelemetry Collector into Loki.
+
+### What Healthy Grafana Looks Like
+
+- Grafana stays at `http://127.0.0.1:3000` in local development.
+- Baseline HTTP panels should populate from `/healthz`, `/readyz`, and `/metrics` traffic.
+- Route-specific registry panels stay empty until you exercise the matching publish, discovery, resolution, metadata, content, or lifecycle route.
+- Use `X-Request-ID` when you want to correlate one request across Grafana logs, metrics-adjacent behavior, and audit rows.
+
+### Exercise The Dashboard
+
+Use the default local tokens from `AUTH_TOKENS_JSON` to populate both the baseline and route-specific panels:
+
+```bash
+SLUG="local.observability.$(date +%s)"
+VERSION="1.0.0"
+
+curl http://127.0.0.1:8000/healthz
+curl http://127.0.0.1:8000/readyz
+curl http://127.0.0.1:8000/metrics
+
+curl \
+  -H 'Authorization: Bearer publisher-token' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "intent": "create_skill",
+    "version": "1.0.0",
+    "content": {"raw_markdown": "# Local Observability\n\nExercise the Grafana panels.\n"},
+    "metadata": {
+      "name": "Local Observability",
+      "description": "Dashboard exercise skill",
+      "tags": ["ops"],
+      "headers": {"runtime": "python"},
+      "inputs_schema": {"type": "object"},
+      "outputs_schema": {"type": "object"},
+      "token_estimate": 64,
+      "maturity_score": 0.9,
+      "security_score": 0.95
+    },
+    "governance": {"trust_tier": "untrusted", "provenance": null},
+    "relationships": {
+      "depends_on": [],
+      "extends": [],
+      "conflicts_with": [],
+      "overlaps_with": []
+    }
+  }' \
+  "http://127.0.0.1:8000/skills/${SLUG}/versions"
+
+curl -H 'Authorization: Bearer reader-token' \
+  "http://127.0.0.1:8000/skills/${SLUG}/versions/${VERSION}"
+curl -H 'Authorization: Bearer reader-token' \
+  "http://127.0.0.1:8000/skills/${SLUG}/versions/${VERSION}/content"
+curl -H 'Authorization: Bearer reader-token' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "Local Observability",
+    "description": "Dashboard exercise skill",
+    "tags": ["ops"]
+  }' \
+  http://127.0.0.1:8000/discovery
+curl -H 'Authorization: Bearer reader-token' \
+  "http://127.0.0.1:8000/resolution/${SLUG}/${VERSION}"
+curl -X PATCH \
+  -H 'Authorization: Bearer admin-token' \
+  -H 'Content-Type: application/json' \
+  -d '{"status":"deprecated","note":"Grafana dashboard exercise"}' \
+  "http://127.0.0.1:8000/skills/${SLUG}/versions/${VERSION}/status"
+```

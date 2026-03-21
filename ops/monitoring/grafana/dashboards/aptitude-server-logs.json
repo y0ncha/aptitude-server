@@ -42,7 +42,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "{service_name=\"aptitude-server\"} | json",
+          "expr": "{service_name=\"aptitude-server\"} | json | line_format \"{{.level}} {{.logger}} {{.message}} request_id={{.request_id}} route={{.http_route}} status={{.status_code}} duration_ms={{.duration_ms}} event_type={{.event_type}}\"",
           "queryType": "range",
           "refId": "A"
         }
@@ -75,7 +75,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "{service_name=\"aptitude-server\"} | json | level=\"ERROR\"",
+          "expr": "{service_name=\"aptitude-server\"} | json | level=\"ERROR\" | line_format \"{{.level}} {{.logger}} {{.message}} request_id={{.request_id}} route={{.http_route}} status={{.status_code}} duration_ms={{.duration_ms}}\"",
           "queryType": "range",
           "refId": "A"
         }
@@ -108,7 +108,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "{service_name=\"aptitude-server\"} |= \"$request_id\" | json",
+          "expr": "{service_name=\"aptitude-server\"} |= \"$request_id\" | json | line_format \"{{.level}} {{.logger}} {{.message}} request_id={{.request_id}} route={{.http_route}} status={{.status_code}} duration_ms={{.duration_ms}} event_type={{.event_type}}\"",
           "queryType": "range",
           "refId": "A"
         }

@@ -41,7 +41,7 @@ services:
     volumes:
       - aptitude-logs:/var/log/aptitude
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/healthz').read()\""]
+      test: ["CMD-SHELL", "python -c \"from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/readyz').read()\""]
       interval: 15s
       timeout: 5s
       retries: 5

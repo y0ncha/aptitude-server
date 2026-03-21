@@ -30,7 +30,10 @@ scripts:
         pm.expect(json.content.checksum.algorithm).to.eql('sha256');
         pm.expect(json.content.checksum.digest).to.be.a('string').and.not.empty;
         pm.expect(json.lifecycle_status).to.eql('deprecated');
-        pm.expect(json.trust_tier).to.eql('untrusted');
+        pm.expect(json.trust_tier).to.eql('internal');
+        pm.expect(json.provenance.repo_url).to.eql('https://github.com/example/skills');
+        pm.expect(json.provenance.publisher_identity).to.eql('postman/manual-qa');
+        pm.expect(json.provenance.trust_context.policy_profile).to.eql('default');
         pm.expect(json).to.not.have.property('relationships');
         pm.expect(json).to.not.have.property('content_download_path');
       });

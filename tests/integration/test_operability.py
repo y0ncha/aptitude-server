@@ -107,6 +107,21 @@ def test_request_id_is_echoed_on_success_and_error_responses(
 
 
 @pytest.mark.integration
+def test_readyz_initializes_database_readiness_metric(
+    monkeypatch: pytest.MonkeyPatch,
+    require_integration_database: str,
+) -> None:
+    monkeypatch.setenv("DATABASE_URL", require_integration_database)
+
+    with TestClient(create_app()) as client:
+        readyz = client.get("/readyz")
+        metrics = client.get("/metrics")
+
+    assert readyz.status_code == 200
+    assert 'aptitude_readiness_status{dependency="database"} 1.0' in metrics.text
+
+
+@pytest.mark.integration
 def test_publish_flow_stitches_request_id_into_audit_rows_and_metrics(
     monkeypatch: pytest.MonkeyPatch,
     migrated_registry_database: str,
