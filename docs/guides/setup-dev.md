@@ -105,10 +105,11 @@ This starts the API plus:
 
 - Prometheus at `http://127.0.0.1:9090`
 - Loki at `http://127.0.0.1:3100`
-- Promtail metrics at `http://127.0.0.1:9080/metrics`
+- OTLP gRPC at `http://127.0.0.1:4317`
+- OTLP HTTP at `http://127.0.0.1:4318`
 - Grafana at `http://127.0.0.1:3000`
 
-The observability profile keeps migrations explicit by running the one-shot `migrate` service before the app starts. Shut the stack down with:
+Those services come from one `grafana/otel-lgtm` container. The observability profile keeps migrations explicit by running the one-shot `migrate` service before the app starts. Shut the stack down with:
 
 ```bash
 make observability-down
@@ -122,4 +123,4 @@ Hit a simple route with a known request ID:
 curl -H 'X-Request-ID: setup-dev-loki-check' http://127.0.0.1:8000/healthz
 ```
 
-Then open Grafana and search for `setup-dev-loki-check` in the `Aptitude Server Logs` dashboard. That exercises the full local path from the API's JSON file sink through Promtail into Loki.
+Then open Grafana and search for `setup-dev-loki-check` in the `Aptitude Server Logs` dashboard. That exercises the full local path from the API's JSON file sink through the embedded OpenTelemetry Collector into Loki.

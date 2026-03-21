@@ -56,11 +56,11 @@ groups:
           summary: Loki is unavailable in the local observability stack
           description: Grafana log queries will fail until the Loki service is reachable again.
 
-      - alert: AptitudeServerPromtailUnavailable
-        expr: up{job="promtail"} == 0
+      - alert: AptitudeServerCollectorUnavailable
+        expr: up{job="otelcol"} == 0
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: Promtail is unavailable in the local observability stack
-          description: Application logs are no longer being shipped from the shared log volume.
+          summary: The OpenTelemetry collector is unavailable in the local observability stack
+          description: Application logs are no longer being shipped from the shared log volume into Loki.

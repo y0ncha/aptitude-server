@@ -52,7 +52,7 @@ observability-up:
 	docker compose --profile observability up -d db
 	docker compose --profile observability build server migrate
 	docker compose --profile observability run --rm migrate
-	docker compose --profile observability up -d server prometheus loki promtail grafana
+	docker compose --profile observability up -d server observability
 
 observability-down:
 	docker compose --profile observability down -v
@@ -61,7 +61,7 @@ docker-smoke:
 	docker compose --profile observability up -d db
 	docker compose --profile observability build server migrate
 	docker compose --profile observability run --rm migrate
-	docker compose --profile observability up -d server prometheus loki promtail grafana
+	docker compose --profile observability up -d server observability
 	@for attempt in $$(seq 1 30); do \
 		if curl --silent --fail http://127.0.0.1:8000/healthz >/dev/null 2>&1; then \
 			break; \
@@ -74,24 +74,32 @@ docker-smoke:
 		fi; \
 		sleep 1; \
 	done
+	@for attempt in $$(seq 1 30); do \
+		if curl --silent http://127.0.0.1:9090/api/v1/targets | grep -q '"job":"aptitude-server"' \
+			&& curl --silent http://127.0.0.1:9090/api/v1/targets | grep -q '"job":"loki"' \
+			&& curl --silent http://127.0.0.1:9090/api/v1/targets | grep -q '"job":"otelcol"'; then \
+			break; \
+		fi; \
+		sleep 1; \
+	done
 	curl --fail http://127.0.0.1:8000/healthz
 	curl --fail http://127.0.0.1:8000/readyz
 	curl --fail http://127.0.0.1:8000/metrics
 	curl --fail http://127.0.0.1:3100/ready
 	curl --silent http://127.0.0.1:9090/api/v1/targets | grep '"job":"aptitude-server"'
 	curl --silent http://127.0.0.1:9090/api/v1/targets | grep '"job":"loki"'
-	curl --silent http://127.0.0.1:9090/api/v1/targets | grep '"job":"promtail"'
+	curl --silent http://127.0.0.1:9090/api/v1/targets | grep '"job":"otelcol"'
 	curl --silent --fail -H 'X-Request-ID: loki-smoke' http://127.0.0.1:8000/healthz >/dev/null
 	@START=$$(python3 -c 'import time; print(time.time_ns() - 300_000_000_000)'); \
 	for attempt in $$(seq 1 30); do \
 		END=$$(python3 -c 'import time; print(time.time_ns())'); \
-		if curl --silent --get --data-urlencode 'query={job="aptitude-server"} |= "loki-smoke"' --data-urlencode "start=$${START}" --data-urlencode "end=$${END}" --data-urlencode 'limit=20' http://127.0.0.1:3100/loki/api/v1/query_range | python3 -c 'import json, sys; data = json.load(sys.stdin); raise SystemExit(0 if any(stream["values"] for stream in data["data"]["result"]) else 1)'; then \
+		if curl --silent --get --data-urlencode 'query={service_name="aptitude-server"} |= "loki-smoke"' --data-urlencode "start=$${START}" --data-urlencode "end=$${END}" --data-urlencode 'limit=20' http://127.0.0.1:3100/loki/api/v1/query_range | python3 -c 'import json, sys; data = json.load(sys.stdin); raise SystemExit(0 if any(stream["values"] for stream in data["data"]["result"]) else 1)'; then \
 			break; \
 		fi; \
 		sleep 1; \
 	done; \
 	END=$$(python3 -c 'import time; print(time.time_ns())'); \
-	curl --silent --get --data-urlencode 'query={job="aptitude-server"} |= "loki-smoke"' --data-urlencode "start=$${START}" --data-urlencode "end=$${END}" --data-urlencode 'limit=20' http://127.0.0.1:3100/loki/api/v1/query_range | python3 -c 'import json, sys; data = json.load(sys.stdin); matches = [(ts, line) for stream in data["data"]["result"] for ts, line in stream["values"]]; print(matches[0][1]) if matches else sys.exit("No Loki records matched loki-smoke")'
+	curl --silent --get --data-urlencode 'query={service_name="aptitude-server"} |= "loki-smoke"' --data-urlencode "start=$${START}" --data-urlencode "end=$${END}" --data-urlencode 'limit=20' http://127.0.0.1:3100/loki/api/v1/query_range | python3 -c 'import json, sys; data = json.load(sys.stdin); matches = [(ts, line) for stream in data["data"]["result"] for ts, line in stream["values"]]; print(matches[0][1]) if matches else sys.exit("No Loki records matched loki-smoke")'
 	docker compose --profile observability down -v
 
 docker-build:

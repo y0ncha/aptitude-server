@@ -213,10 +213,7 @@ This brings up:
 
 - PostgreSQL
 - `aptitude-server`
-- Prometheus
-- Loki
-- Promtail
-- Grafana
+- one `grafana/otel-lgtm` container that embeds Grafana, Prometheus, Loki, Tempo, Pyroscope, and an OpenTelemetry Collector
 
 Local URLs:
 
@@ -224,7 +221,8 @@ Local URLs:
 - Metrics: `http://127.0.0.1:8000/metrics`
 - Prometheus: `http://127.0.0.1:9090`
 - Loki: `http://127.0.0.1:3100`
-- Promtail metrics: `http://127.0.0.1:9080/metrics`
+- OTLP gRPC: `http://127.0.0.1:4317`
+- OTLP HTTP: `http://127.0.0.1:4318`
 - Grafana: `http://127.0.0.1:3000`
 
 Default Grafana credentials:
@@ -240,7 +238,7 @@ To verify the log path, send a request with a known correlation ID and then sear
 curl -H 'X-Request-ID: readme-loki-check' http://127.0.0.1:8000/healthz
 ```
 
-The local stack uses Promtail only as a lightweight file shipper for this Docker-based learning environment. It is not intended to define the future production logging shape.
+The local stack uses `grafana/otel-lgtm` only as a local development bundle. It is intentionally convenient, not production-shaped.
 
 To stop the local stack:
 
