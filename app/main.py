@@ -16,9 +16,6 @@ from fastapi.routing import APIRoute
 from starlette.types import ExceptionHandler
 
 from app.core.governance import PolicyViolation
-from app.core.logging import build_logging_config, configure_logging, normalize_log_format
-from app.core.metrics import observe_http_request
-from app.core.observability import clear_request_context, set_request_context
 from app.core.settings import get_settings, reset_settings_cache
 from app.interface.api.discovery import router as discovery_router
 from app.interface.api.errors import (
@@ -32,6 +29,13 @@ from app.interface.api.health import router as health_router
 from app.interface.api.operability import router as operability_router
 from app.interface.api.resolution import router as resolution_router
 from app.interface.api.skills import router as skills_router
+from app.observability.context import clear_request_context, set_request_context
+from app.observability.logging import (
+    build_logging_config,
+    configure_logging,
+    normalize_log_format,
+)
+from app.observability.metrics import observe_http_request
 from app.persistence.db import dispose_engine
 from app.service_container import build_service_container
 

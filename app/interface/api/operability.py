@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Response
 
-from app.core.metrics import generate_latest, metrics_content_type
+from app.observability.metrics import generate_latest, metrics_content_type
 
 router = APIRouter(tags=["operability"])
 

@@ -12,13 +12,13 @@ from fastapi import Depends, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.governance import CallerIdentity
-from app.core.readiness import ReadinessService
 from app.core.settings import Settings, get_settings
 from app.core.skills.discovery import SkillDiscoveryService
 from app.core.skills.fetch import SkillFetchService
 from app.core.skills.registry import SkillRegistryService
 from app.core.skills.resolution import SkillResolutionService
 from app.interface.api.errors import ApiError
+from app.observability.readiness import ReadinessService
 from app.service_container import ServiceContainer
 
 # Shared settings dependency used by route handlers and adapters.

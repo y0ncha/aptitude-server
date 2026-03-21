@@ -16,9 +16,7 @@ that infrastructure layers implement.
 - `ports.py`: protocol contracts for publish, exact version reads, relationship reads, discovery, artifacts, audit, and readiness.
 - `dependencies.py`: FastAPI dependency providers and typed aliases
   (`SettingsDep`, `ReadinessServiceDep`, `SkillRegistryServiceDep`, `SkillDiscoveryServiceDep`, `SkillResolutionServiceDep`, `SkillFetchServiceDep`) that read process-scoped services from the typed runtime service container at `app.state.services`.
-- `readiness.py`: readiness domain service and report models.
 - `settings.py`: typed environment configuration.
-- `logging.py`: centralized logging config for application and `uvicorn.*` loggers.
 
 ## Boundaries
 
@@ -32,9 +30,10 @@ that infrastructure layers implement.
 - Core publish normalizes publisher-supplied advisory provenance, derives server-owned trust context, and leaves resolver concerns out of the write path.
 - The `skills/` package is an internal grouping inside core, not a separate
   architecture layer; top-level layering remains `interface -> core -> persistence`.
+- Runtime logging, metrics, request context, and readiness helpers live in
+  `app.observability`, not in the business-domain core.
 - Core registry status updates derive `is_current_default` from canonical version ordering instead of a stored pointer on `skills`.
 - Successful publish and lifecycle mutation audits are committed transactionally with the authoritative version write, while read and denied-action audits use the standalone audit adapter.
-- Logging configuration is defined once in core and reused by runtime entrypoints.
 - Dependency providers in `dependencies.py` assume startup has initialized
   the typed process-scoped service container stored under `app.state.services`.
 - Core treats `metadata.description` as the only canonical short summary field;

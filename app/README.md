@@ -18,6 +18,8 @@ metadata-oriented intelligence work.
 - `app/core/skills/`: skill-catalog bounded context inside the core layer,
   including publish, discovery, exact fetch, resolution, search, and shared
   skill-domain models.
+- `app/observability/`: runtime logging, metrics, request context propagation,
+  and dependency readiness helpers.
 - `app/interface/`: API interface boundary for publish, discovery, exact dependency reads, and exact metadata/content fetch.
 - `app/persistence/`: database/artifact adapters and ORM models for immutable
 manifests, advisory provenance snapshots, dependency declaration projections, search read models, and transactional mutation audit writes.

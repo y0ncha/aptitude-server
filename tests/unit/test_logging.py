@@ -11,8 +11,8 @@ from io import StringIO
 
 import pytest
 
-from app.core.logging import build_logging_config, configure_logging
-from app.core.observability import clear_request_context, set_request_context
+from app.observability.context import clear_request_context, set_request_context
+from app.observability.logging import build_logging_config, configure_logging
 
 
 def _app_handler() -> logging.Handler:
@@ -35,7 +35,7 @@ def _captured_handler_stream() -> Iterator[StringIO]:
 def test_build_logging_config_uses_shared_format_for_app_and_libraries() -> None:
     config = build_logging_config("INFO", log_format="json", app_env="test", interactive=False)
 
-    assert config["formatters"]["default"]["()"] == "app.core.logging.JsonLogFormatter"
+    assert config["formatters"]["default"]["()"] == "app.observability.logging.JsonLogFormatter"
     assert config["handlers"]["default"]["stream"] == "ext://sys.stdout"
     assert config["root"]["level"] == logging.INFO
     assert config["loggers"]["app"]["handlers"] == ["default"]
@@ -86,28 +86,28 @@ def test_build_logging_config_keeps_noisy_libraries_verbose_in_debug() -> None:
 def test_build_logging_config_uses_pretty_formatter_when_requested() -> None:
     config = build_logging_config("INFO", log_format="pretty", app_env="dev", interactive=True)
 
-    assert config["formatters"]["default"]["()"] == "app.core.logging.PrettyLogFormatter"
+    assert config["formatters"]["default"]["()"] == "app.observability.logging.PrettyLogFormatter"
 
 
 @pytest.mark.unit
 def test_build_logging_config_auto_uses_pretty_for_local_interactive_runs() -> None:
     config = build_logging_config("INFO", log_format="auto", app_env="dev", interactive=True)
 
-    assert config["formatters"]["default"]["()"] == "app.core.logging.PrettyLogFormatter"
+    assert config["formatters"]["default"]["()"] == "app.observability.logging.PrettyLogFormatter"
 
 
 @pytest.mark.unit
 def test_build_logging_config_auto_uses_json_for_container_runs() -> None:
     config = build_logging_config("INFO", log_format="auto", app_env="container", interactive=True)
 
-    assert config["formatters"]["default"]["()"] == "app.core.logging.JsonLogFormatter"
+    assert config["formatters"]["default"]["()"] == "app.observability.logging.JsonLogFormatter"
 
 
 @pytest.mark.unit
 def test_build_logging_config_auto_uses_json_for_non_interactive_runs() -> None:
     config = build_logging_config("INFO", log_format="auto", app_env="dev", interactive=False)
 
-    assert config["formatters"]["default"]["()"] == "app.core.logging.JsonLogFormatter"
+    assert config["formatters"]["default"]["()"] == "app.observability.logging.JsonLogFormatter"
 
 
 @pytest.mark.unit

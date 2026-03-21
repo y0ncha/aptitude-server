@@ -5,12 +5,12 @@ from __future__ import annotations
 import pytest
 from prometheus_client import generate_latest
 
-from app.core.metrics import REGISTRY
-from app.core.observability import (
+from app.observability.context import (
     clear_request_context,
     get_request_context,
     set_request_context,
 )
+from app.observability.metrics import REGISTRY
 
 
 @pytest.mark.unit

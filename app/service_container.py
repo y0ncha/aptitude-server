@@ -6,12 +6,12 @@ from dataclasses import dataclass
 
 from app.audit.recorder import SQLAlchemyAuditRecorder
 from app.core.governance import GovernancePolicy
-from app.core.readiness import ReadinessService
 from app.core.settings import Settings
 from app.core.skills.discovery import SkillDiscoveryService
 from app.core.skills.fetch import SkillFetchService
 from app.core.skills.registry import SkillRegistryService
 from app.core.skills.resolution import SkillResolutionService
+from app.observability.readiness import ReadinessService
 from app.persistence.db import SQLAlchemyDatabaseReadinessProbe, get_session_factory, init_engine
 from app.persistence.skill_registry_repository import SQLAlchemySkillRegistryRepository
 
