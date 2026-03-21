@@ -12,10 +12,7 @@ dependencies = [
     "sqlalchemy>=2.0.44",
     "uvicorn[standard]>=0.41.0",
     "pydantic>=2.12.5",
-    "ruff==0.15.7",
-    "pytest>=9.0.2",
     "starlette>=0.52.1",
-    "fastapi-cloud-cli==0.15.0",
     "pydantic-extra-types==2.11.1",
 ]
 
@@ -23,9 +20,9 @@ dependencies = [
 dev = [
     "httpx>=0.28.1",
     "mypy>=1.18.2",
-    "pytest>=8.4.2",
+    "pytest==9.0.2",
     "pytest-asyncio>=0.26.0",
-    "ruff>=0.13.1",
+    "ruff==0.15.7",
 ]
 
 [tool.fastapi]

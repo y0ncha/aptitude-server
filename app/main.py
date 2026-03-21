@@ -15,17 +15,11 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.routing import APIRoute
 from starlette.types import ExceptionHandler
 
-from app.audit.recorder import SQLAlchemyAuditRecorder
-from app.core.governance import GovernancePolicy, PolicyViolation
+from app.core.governance import PolicyViolation
 from app.core.logging import build_logging_config, configure_logging, normalize_log_format
 from app.core.metrics import observe_http_request
 from app.core.observability import clear_request_context, set_request_context
-from app.core.readiness import ReadinessService
 from app.core.settings import get_settings, reset_settings_cache
-from app.core.skill_discovery import SkillDiscoveryService
-from app.core.skill_fetch import SkillFetchService
-from app.core.skill_registry import SkillRegistryService
-from app.core.skill_resolution import SkillResolutionService
 from app.interface.api.discovery import router as discovery_router
 from app.interface.api.errors import (
     ApiError,
@@ -38,13 +32,8 @@ from app.interface.api.health import router as health_router
 from app.interface.api.operability import router as operability_router
 from app.interface.api.resolution import router as resolution_router
 from app.interface.api.skills import router as skills_router
-from app.persistence.db import (
-    SQLAlchemyDatabaseReadinessProbe,
-    dispose_engine,
-    get_session_factory,
-    init_engine,
-)
-from app.persistence.skill_registry_repository import SQLAlchemySkillRegistryRepository
+from app.persistence.db import dispose_engine
+from app.service_container import build_service_container
 
 STARTUP_BANNER = r"""
       //| |
@@ -93,31 +82,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         logger.warning(
             "no auth tokens configured; authenticated endpoints will reject all bearer tokens"
         )
-    init_engine(settings.database_url)
-    session_factory = get_session_factory()
-    registry_repository = SQLAlchemySkillRegistryRepository(session_factory=session_factory)
-    audit_recorder = SQLAlchemyAuditRecorder(session_factory=session_factory)
-    governance_policy = GovernancePolicy(profile=settings.active_policy)
-    app.state.skill_registry_service = SkillRegistryService(
-        registry=registry_repository,
-        audit_recorder=audit_recorder,
-        governance_policy=governance_policy,
-    )
-    app.state.skill_discovery_service = SkillDiscoveryService(
-        search_port=registry_repository,
-        audit_recorder=audit_recorder,
-        governance_policy=governance_policy,
-    )
-    app.state.skill_fetch_service = SkillFetchService(
-        version_reader=registry_repository,
-        audit_recorder=audit_recorder,
-        governance_policy=governance_policy,
-    )
-    app.state.skill_resolution_service = SkillResolutionService(
-        relationship_reader=registry_repository,
-        audit_recorder=audit_recorder,
-        governance_policy=governance_policy,
-    )
+    app.state.services = build_service_container(settings=settings)
     logger.info("service startup complete")
     try:
         yield
@@ -133,9 +98,6 @@ def create_app() -> FastAPI:
         description=API_DESCRIPTION,
         version=API_VERSION,
         lifespan=lifespan,
-    )
-    app.state.readiness_service = ReadinessService(
-        database_probe=SQLAlchemyDatabaseReadinessProbe(),
     )
 
     @app.middleware("http")

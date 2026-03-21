@@ -51,7 +51,7 @@ docker-migrate:
 observability-up:
 	docker compose --profile observability up -d db
 	docker compose --profile observability run --rm migrate
-	docker compose --profile observability up -d app prometheus grafana
+	docker compose --profile observability up -d server prometheus grafana
 
 observability-down:
 	docker compose --profile observability down -v
@@ -59,7 +59,7 @@ observability-down:
 docker-smoke:
 	docker compose --profile observability up -d db
 	docker compose --profile observability run --rm migrate
-	docker compose --profile observability up -d app
+	docker compose --profile observability up -d server
 	@for attempt in $$(seq 1 30); do \
 		if curl --silent --fail http://127.0.0.1:8000/healthz >/dev/null 2>&1; then \
 			break; \

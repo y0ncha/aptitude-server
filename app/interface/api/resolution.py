@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Path, status
 from fastapi.responses import JSONResponse
@@ -10,35 +10,27 @@ from fastapi.responses import JSONResponse
 from app.core.dependencies import ReadCallerDep, SkillResolutionServiceDep
 from app.core.skill_models import SkillVersionNotFoundError
 from app.interface.api.errors import error_response
-from app.interface.api.skill_api_support import to_dependency_resolution_response
-from app.interface.dto.errors import ErrorEnvelope
-from app.interface.dto.examples import (
-    INVALID_REQUEST_ERROR_EXAMPLE,
-    RESOLUTION_RESPONSE_EXAMPLE,
-    SKILL_VERSION_NOT_FOUND_ERROR_EXAMPLE,
+from app.interface.api.response_docs import (
+    ApiResponses,
+    invalid_request_response,
+    skill_version_not_found_response,
 )
-from app.interface.dto.skills import SkillDependencyResolutionResponse
+from app.interface.api.skill_api_support_resolution import to_dependency_resolution_response
+from app.interface.dto.examples import RESOLUTION_RESPONSE_EXAMPLE
+from app.interface.dto.skills_resolution import SkillDependencyResolutionResponse
 from app.interface.validation import SEMVER_PATTERN, SLUG_PATTERN
 
 router = APIRouter(tags=["resolution"])
-
-ApiResponses = dict[int | str, dict[str, Any]]
 
 RESOLUTION_RESPONSES: ApiResponses = {
     status.HTTP_200_OK: {
         "description": "Direct dependency declarations returned successfully.",
         "content": {"application/json": {"example": RESOLUTION_RESPONSE_EXAMPLE}},
     },
-    status.HTTP_404_NOT_FOUND: {
-        "model": ErrorEnvelope,
-        "description": "The requested immutable `slug@version` does not exist.",
-        "content": {"application/json": {"example": SKILL_VERSION_NOT_FOUND_ERROR_EXAMPLE}},
-    },
-    status.HTTP_422_UNPROCESSABLE_CONTENT: {
-        "model": ErrorEnvelope,
-        "description": "The path parameters are invalid.",
-        "content": {"application/json": {"example": INVALID_REQUEST_ERROR_EXAMPLE}},
-    },
+    **skill_version_not_found_response(
+        description="The requested immutable `slug@version` does not exist."
+    ),
+    **invalid_request_response(description="The path parameters are invalid."),
 }
 
 

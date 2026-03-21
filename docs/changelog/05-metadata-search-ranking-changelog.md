@@ -4,7 +4,7 @@ This changelog documents implementation of [.agents/plans/05-metadata-search-ran
 
 The branch delivered more than indexed search. It also completed the PostgreSQL normalization work described by the milestone, moved exact content fetch onto database-backed markdown storage, and split read surfaces so discovery stays body-free. Supporting design references live in [docs/schema.md](../../docs/schema.md) and [docs/storage-strategy.md](../../docs/storage-strategy.md).
 
-Historical note (March 15, 2026): the route inventory described below predates the contract freeze from Plans 07-09. References to legacy identity/list routes, `GET /discovery/skills/search`, and `POST /resolution/relationships:batch` are transitional history only; the current public contract is documented in [docs/api-contract.md](/Users/yonatan/Dev/Aptitude/aptitude-server/docs/api-contract.md).
+Historical note (March 15, 2026): the route inventory described below predates the contract freeze from Plans 07-09. References to legacy identity/list routes, `GET /discovery/skills/search`, and `POST /resolution/relationships:batch` are transitional history only; the current public contract is documented in [docs/project/api-contract.md](../project/api-contract.md).
 
 ## Scope Delivered
 

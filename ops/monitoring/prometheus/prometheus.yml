@@ -15,4 +15,4 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets:
-          - app:8000
+          - server:8000

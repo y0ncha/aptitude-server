@@ -11,6 +11,7 @@ metadata-oriented intelligence work.
 ## Module Map
 
 - `app/main.py`: FastAPI application creation, startup/shutdown wiring, and dev server runner with shared logging config + startup banner.
+- `app/service_container.py`: typed runtime service graph builder used by startup wiring and request-time dependency access.
 - `app/audit/`: audit port adapters.
 - `app/core/`: domain services for immutable catalog reads/writes, settings, ports,
   advisory search, provenance validation, transactional mutation audit, and dependency providers.

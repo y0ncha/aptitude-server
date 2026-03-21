@@ -19,7 +19,7 @@ services:
     volumes:
       - aptitude-postgres-data:/var/lib/postgresql/data
 
-  app:
+  server:
     profiles: ["observability"]
     build:
       context: .
@@ -63,7 +63,7 @@ services:
     image: ${PROMETHEUS_IMAGE:-prom/prometheus:v3.5.1}
     container_name: aptitude-prometheus
     depends_on:
-      app:
+      server:
         condition: service_started
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"

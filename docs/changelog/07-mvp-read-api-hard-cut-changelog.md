@@ -4,7 +4,7 @@ This changelog documents implementation of [.agents/plans/07-mvp-read-api-hard-c
 
 The milestone makes the intended break explicit: the public read contract is reduced to four endpoints, superseded read routes are removed instead of wrapped, and publish now reuses the same immutable metadata envelope returned by batch fetch. The cut is enforced in routers, services, and examples rather than carried as compatibility debt.
 
-Historical note (March 15, 2026): the batch-fetch route inventory captured below was superseded before the contract freeze completed. The current public read contract is `POST /discovery`, public `GET /resolution/{slug}/{version}`, `GET /skills/{slug}/versions/{version}`, and `GET /skills/{slug}/versions/{version}/content`; use [docs/api-contract.md](/docs/project/api-contract.md) and [Plan 09](/.agents/plans/09-public-api-simplification-and-contract-freeze.md) as the current source of truth.
+Historical note (March 15, 2026): the batch-fetch route inventory captured below was superseded before the contract freeze completed. The current public read contract is `POST /discovery`, public `GET /resolution/{slug}/{version}`, `GET /skills/{slug}/versions/{version}`, and `GET /skills/{slug}/versions/{version}/content`; use [docs/project/api-contract.md](../project/api-contract.md) and [Plan 09](../../.agents/plans/09-public-api-simplification-and-contract-freeze.md) as the current source of truth.
 
 ## Scope Delivered
 

@@ -13,11 +13,12 @@ that infrastructure layers implement.
 - `skill_discovery.py`: discovery service facade for ordered candidate slug retrieval.
 - `skill_resolution.py`: exact direct dependency read service for authored `depends_on` selectors.
 - `skill_fetch.py`: exact immutable metadata and markdown fetch service.
+- `exact_read_support.py`: shared exact-read policy and audit orchestration reused by fetch and resolution.
 - `skill_search.py`: advisory search query/result models and implementation reused by discovery.
 - `audit_events.py`: typed audit-event builders shared by publish, discovery, fetch, resolution, and lifecycle flows.
 - `ports.py`: protocol contracts for publish, exact version reads, relationship reads, discovery, artifacts, audit, and readiness.
 - `dependencies.py`: FastAPI dependency providers and typed aliases
-  (`SettingsDep`, `ReadinessServiceDep`, `SkillRegistryServiceDep`, `SkillDiscoveryServiceDep`, `SkillResolutionServiceDep`, `SkillFetchServiceDep`) that read process-scoped services from `request.app.state`.
+  (`SettingsDep`, `ReadinessServiceDep`, `SkillRegistryServiceDep`, `SkillDiscoveryServiceDep`, `SkillResolutionServiceDep`, `SkillFetchServiceDep`) that read process-scoped services from the typed runtime service container at `app.state.services`.
 - `readiness.py`: readiness domain service and report models.
 - `settings.py`: typed environment configuration.
 - `logging.py`: centralized logging config for application and `uvicorn.*` loggers.
@@ -36,6 +37,6 @@ that infrastructure layers implement.
 - Successful publish and lifecycle mutation audits are committed transactionally with the authoritative version write, while read and denied-action audits use the standalone audit adapter.
 - Logging configuration is defined once in core and reused by runtime entrypoints.
 - Dependency providers in `dependencies.py` assume startup has initialized
-  the process-scoped services stored under `app.state`.
+  the typed process-scoped service container stored under `app.state.services`.
 - Core treats `metadata.description` as the only canonical short summary field;
   content models expose checksum and size metadata only.

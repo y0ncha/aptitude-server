@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Path, status
 from fastapi.responses import JSONResponse
@@ -20,16 +20,16 @@ from app.core.skill_registry import (
     SkillVersionNotFoundError,
 )
 from app.interface.api.errors import error_response
-from app.interface.api.skill_api_support import (
+from app.interface.api.response_docs import ApiResponses, invalid_request_response
+from app.interface.api.skill_api_support_fetch import to_metadata_response
+from app.interface.api.skill_api_support_lifecycle import to_version_status_response
+from app.interface.api.skill_api_support_publish import (
     to_create_command,
-    to_metadata_response,
-    to_version_status_response,
 )
 from app.interface.dto.errors import ErrorEnvelope
 from app.interface.dto.examples import (
     CONTENT_STORAGE_FAILURE_ERROR_EXAMPLE,
     DUPLICATE_SKILL_VERSION_ERROR_EXAMPLE,
-    INVALID_REQUEST_ERROR_EXAMPLE,
     PUBLISH_REQUEST_EXAMPLE,
     SKILL_ALREADY_EXISTS_ERROR_EXAMPLE,
     SKILL_NOT_FOUND_ERROR_EXAMPLE,
@@ -37,25 +37,19 @@ from app.interface.dto.examples import (
     SKILL_VERSION_NOT_FOUND_ERROR_EXAMPLE,
     SKILL_VERSION_STATUS_RESPONSE_EXAMPLE,
 )
-from app.interface.dto.skills import (
-    SkillVersionCreateRequest,
-    SkillVersionMetadataResponse,
+from app.interface.dto.skills_fetch import SkillVersionMetadataResponse
+from app.interface.dto.skills_lifecycle import (
     SkillVersionStatusResponse,
     SkillVersionStatusUpdateRequest,
 )
+from app.interface.dto.skills_publish import SkillVersionCreateRequest
 from app.interface.validation import SEMVER_PATTERN, SLUG_PATTERN
 
 router = APIRouter(tags=["skills"])
 
-ApiResponses = dict[int | str, dict[str, Any]]
-
-REQUEST_VALIDATION_ERROR_RESPONSE: ApiResponses = {
-    status.HTTP_422_UNPROCESSABLE_CONTENT: {
-        "model": ErrorEnvelope,
-        "description": "The request body, path parameters, or query parameters are invalid.",
-        "content": {"application/json": {"example": INVALID_REQUEST_ERROR_EXAMPLE}},
-    }
-}
+REQUEST_VALIDATION_ERROR_RESPONSE: ApiResponses = invalid_request_response(
+    description="The request body, path parameters, or query parameters are invalid."
+)
 
 PUBLISH_RESPONSES: ApiResponses = {
     status.HTTP_201_CREATED: {
